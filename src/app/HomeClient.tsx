@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import PlanCard from "./components/PlanCard";
+import Link from "next/link";
 
 type Plan = {
   id: string;
@@ -37,7 +38,10 @@ export default function HomeClient() {
     <div className="p-4 pb-24 space-y-4">
       <header className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Planes cerca de ti</h1>
-        <a href="/plan/new" className="text-purple-600 font-bold">Crear</a>
+        <Link 
+          href="/plan/new" className="text-purple-600 font-bold">
+        Crear 
+        </Link>
       </header>
 
       {!coords && !denied && (
@@ -62,13 +66,12 @@ export default function HomeClient() {
       )}
 
       {/* Botón flotante */}
-      <a
+      <Link 
         href="/plan/new"
         className="fixed bottom-5 right-5 bg-purple-600 text-white rounded-full w-14 h-14 flex items-center justify-center text-3xl shadow-lg"
-        aria-label="Crear plan"
-      >
-        +
-      </a>
+        aria-label="Crear plan">
+        Crear Plan
+      </Link>
     </div>
   );
 }
