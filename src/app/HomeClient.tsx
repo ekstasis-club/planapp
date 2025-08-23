@@ -71,9 +71,6 @@ export default function HomeClient() {
         </div>           
         )}
       </main>
-      <div className="bg-red-500 text-white p-4">
-  Test — Este bloque debería ser rojo con texto blanco
-</div>
 
       {/* Botón flotante */}
       <Link
