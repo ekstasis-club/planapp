@@ -35,42 +35,53 @@ export default function HomeClient() {
   }, []);
 
   return (
-    <div className="p-4 pb-24 space-y-4">
-      <header className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Planes cerca de ti</h1>
-        <Link 
-          href="/plan/new" className="text-purple-600 font-bold">
-        Crear 
+    <div className="min-h-screen bg-gray-50 pb-24">
+      {/* Header */}
+      <header className="flex items-center justify-between px-5 py-4 bg-white shadow-sm sticky top-0 z-10">
+        <h1 className="text-xl font-bold">Planes cerca de ti</h1>
+        <Link href="/plan/new" className="text-purple-600 font-bold">
+          Crear
         </Link>
       </header>
 
-      {!coords && !denied && (
-        <div className="bg-white border border-gray-100 rounded-xl p-4 text-sm">
-          Pidiendo tu ubicación… <span className="text-gray-500">(para mostrarte planes cercanos)</span>
-        </div>
-      )}
+      <main className="p-4">
+        {!coords && !denied && (
+          <div className="bg-white border border-gray-100 rounded-xl p-4 text-sm shadow-sm mb-4">
+            Pidiendo tu ubicación…{" "}
+            <span className="text-gray-500">(para mostrarte planes cercanos)</span>
+          </div>
+        )}
 
-      {denied && (
-        <div className="bg-white border border-gray-100 rounded-xl p-4 text-sm">
-          No pudimos acceder a tu ubicación.<br />
-          Te mostramos planes populares cerca de ti:
-        </div>
-      )}
+        {denied && (
+          <div className="bg-white border border-gray-100 rounded-xl p-4 text-sm shadow-sm mb-4">
+            No pudimos acceder a tu ubicación.
+            <br />
+            Te mostramos planes populares cerca de ti:
+          </div>
+        )}
 
-      {(coords || denied) && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        {/* Grid estilo Safari */}
+        {(coords || denied) && (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {demoPlans.map((plan) => (
-            <PlanCard key={plan.id} {...plan} />
+            <div key={plan.id} className="w-full h-full">
+              <PlanCard {...plan} />
+            </div>
           ))}
-        </div>
-      )}
+        </div>           
+        )}
+      </main>
+      <div className="bg-red-500 text-white p-4">
+  Test — Este bloque debería ser rojo con texto blanco
+</div>
 
       {/* Botón flotante */}
-      <Link 
+      <Link
         href="/plan/new"
-        className="fixed bottom-5 right-5 bg-purple-600 text-white rounded-full w-14 h-14 flex items-center justify-center text-3xl shadow-lg"
-        aria-label="Crear plan">
-        Crear Plan
+        className="fixed bottom-5 right-5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full w-14 h-14 flex items-center justify-center text-3xl shadow-lg"
+        aria-label="Crear plan"
+      >
+        +
       </Link>
     </div>
   );

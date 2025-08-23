@@ -1,19 +1,23 @@
-interface PlanCardProps {
+"use client";
+
+import Link from "next/link";
+
+type Props = {
   id: string;
   title: string;
   emoji: string;
   time: string;
-}
+};
 
-export default function PlanCard({ id, title, emoji, time }: PlanCardProps) {
+export default function PlanCard({ id, title, emoji, time }: Props) {
   return (
-    <a
+    <Link
       href={`/plan/${id}`}
-      className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col items-center justify-center text-center p-3 active:scale-[0.97] transition-transform hover:shadow-md"
+      className="w-full h-full aspect-square bg-black rounded-2xl shadow-md flex flex-col items-center justify-center text-white hover:scale-105 transition-transform overflow-hidden"
     >
-      <div className="text-4xl mb-2">{emoji}</div>
-      <h2 className="font-semibold text-sm truncate">{title}</h2>
-      <p className="text-gray-400 text-xs mt-1">{time}</p>
-    </a>
+      <div className="text-6xl">{emoji}</div>
+      <div className="text-sm font-medium text-center mt-2">{title}</div>
+      <div className="text-xs text-gray-400">{time}</div>
+    </Link>
   );
 }
