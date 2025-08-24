@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin } from "lucide-react";
+import { MapPin, Calendar, Clock } from "lucide-react";
 
 type Props = {
   id: string;
@@ -28,10 +28,12 @@ export default function PlanCard({ id, title, emoji, time, date, place }: Props)
     >
       {/* Fecha y hora en una línea, responsive */}
       <div className="absolute top-3 left-3 right-3 flex justify-between gap-2">
-        <span className="bg-gray-200 text-gray-700 text-[10px] md:text-xs px-2 py-0.5 rounded-full font-medium truncate">
+        <span className="bg-gray-200 text-gray-700 text-[10px] md:text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1 truncate">
+          <Calendar size={12} className="text-gray-500" />
           {formattedDate}
         </span>
-        <span className="bg-gray-200 text-gray-700 text-[10px] md:text-xs px-2 py-0.5 rounded-full font-medium truncate">
+        <span className="bg-gray-200 text-gray-700 text-[10px] md:text-xs px-2 py-0.5 rounded-full font-medium flex items-center gap-1 truncate">
+          <Clock size={12} className="text-gray-500" />
           {time}
         </span>
       </div>
@@ -52,4 +54,3 @@ export default function PlanCard({ id, title, emoji, time, date, place }: Props)
     </Link>
   );
 }
-
