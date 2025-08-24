@@ -1,5 +1,7 @@
 import "./globals.css";
 import BottomNav from "./components/BottomNav";
+import TopNav from "./components/TopNav";
+
 import type { ReactNode } from "react";
 
 export const metadata = {
@@ -26,7 +28,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body className="bg-black text-gray-900 font-sans">
         <main className="max-w-md mx-auto min-h-screen flex flex-col">
-          {children}
+          <TopNav />
+            {children}
           <BottomNav />
         </main>
       </body>
