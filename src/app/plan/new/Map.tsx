@@ -16,25 +16,17 @@ interface MapProps {
 export default function MapComponent({ lat, lng, place, setLat, setLng, setPlace }: MapProps) {
   const mapRef = useRef<L.Map | null>(null);
 
-  if (!lat || !lng) {
-    return (
-      <div className="w-full h-[300px] bg-gray-100 rounded-xl flex items-center justify-center text-gray-500">
-        Cargando mapa...
-      </div>
-    );
-  }
-
   const markerIcon = new L.Icon({
     iconUrl: "https://cdn-icons-png.flaticon.com/512/684/684908.png",
     iconSize: [32, 32],
     iconAnchor: [16, 32],
   });
 
+  // Hooks siempre se llaman
   useEffect(() => {
-    if (mapRef.current) {
-      mapRef.current.invalidateSize();
-      mapRef.current.setView([lat, lng], mapRef.current.getZoom(), { animate: true });
-    }
+    if (!lat || !lng || !mapRef.current) return;
+    mapRef.current.invalidateSize();
+    mapRef.current.setView([lat, lng], mapRef.current.getZoom(), { animate: true });
   }, [lat, lng]);
 
   const handleDragEnd = async (event: L.DragEndEvent) => {
@@ -65,21 +57,28 @@ export default function MapComponent({ lat, lng, place, setLat, setLng, setPlace
 
   return (
     <div className="w-full h-[300px] rounded-xl overflow-hidden shadow-md">
-      <MapContainer
-        center={[lat, lng]}
-        zoom={13}
-        style={{ width: "100%", height: "100%" }}
-        scrollWheelZoom={true}
-        ref={mapRef} // <-- ref guarda la instancia de Leaflet
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
-        />
-        <Marker draggable position={[lat, lng]} icon={markerIcon} eventHandlers={{ dragend: handleDragEnd }}>
-          <Popup>{place}</Popup>
-        </Marker>
-      </MapContainer>
+      {/* Render condicional dentro del JSX, hooks ya ejecutados */}
+      {lat && lng ? (
+        <MapContainer
+          center={[lat, lng]}
+          zoom={13}
+          style={{ width: "100%", height: "100%" }}
+          scrollWheelZoom={true}
+          ref={mapRef}
+        >
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
+          />
+          <Marker draggable position={[lat, lng]} icon={markerIcon} eventHandlers={{ dragend: handleDragEnd }}>
+            <Popup>{place}</Popup>
+          </Marker>
+        </MapContainer>
+      ) : (
+        <div className="w-full h-full flex items-center justify-center text-gray-500 bg-gray-100">
+          Cargando mapa...
+        </div>
+      )}
     </div>
   );
 }

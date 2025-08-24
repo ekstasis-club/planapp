@@ -17,8 +17,8 @@ export default function PlanPage() {
     const all = readJSON<Plan[]>(keyPlans, []);
     setPlan(all.find(p => p.id === id) || null);
     setAttendees(readJSON<string[]>(keyAtt, []));
-  }, [id]);
-
+  }, [id, keyAtt]);
+  
   const timeText = useMemo(() => {
     if (!plan) return "";
     const d = new Date(plan.timeISO);
