@@ -89,12 +89,7 @@ export default function HomeClient() {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      <header className="flex items-center justify-between px-5 py-4 bg-black border-b border-zinc-800 sticky top-0 z-10">
-        <h1 className="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400">
-          PLANAPP
-        </h1>
-      </header>
-
+      
       <main className="p-4 space-y-4">
         <div className="flex gap-2 overflow-x-auto py-2 px-1">
           <button
