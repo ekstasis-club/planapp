@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
-import { uid, pushJSON } from "../../../lib/storage";
-import type { Plan } from "../../../lib/types";
+import { supabase } from "@/lib/supabaseClient";
+import type { Database } from "@/lib/database.types";
 
 const Map = dynamic(() => import("./Map"), { ssr: false });
 
 const EMOJIS = ["🎉","🍻","🎬","🎮","🏖️","🏃‍♂️","🍕","☕","🎵","📸","🛶","🏔️"];
+
+// Tipos usando los generados por Supabase
+type PlanRow = Database["public"]["Tables"]["plans"]["Row"];
+type PlanInsert = Database["public"]["Tables"]["plans"]["Insert"];
 
 export default function NewPlanPage() {
   const [title, setTitle] = useState("");
@@ -20,6 +24,7 @@ export default function NewPlanPage() {
   const [lng, setLng] = useState<number | null>(null);
   const [place, setPlace] = useState<string>("");
 
+  // Inicializar fecha y hora
   useEffect(() => {
     const now = new Date();
     setDate(now.toISOString().split("T")[0]);
@@ -30,6 +35,7 @@ export default function NewPlanPage() {
     setTime(`${hh}:${mm}`);
   }, []);
 
+  // Obtener ubicación
   useEffect(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -56,28 +62,61 @@ export default function NewPlanPage() {
     });
   }, []);
 
-  const createPlan = () => {
+  // Crear plan y chat en Supabase
+  const createPlan = async () => {
     if (!title || !time || !date) return alert("Añade título, fecha y hora");
+
     const [year, month, day] = date.split("-").map(Number);
     const [hours, minutes] = time.split(":").map(Number);
     const dt = new Date(year, month - 1, day, hours, minutes);
-    const id = uid();
-    const now = Date.now();
 
-    const plan: Plan = {
-      id,
-      title,
-      emoji,
-      timeISO: dt.toISOString(),
-      place,
-      visibility: "link",
-      createdBy: handle || "anónimo",
-      createdAt: now,
-      expiresAt: now + 1000 * 60 * 60 * 24,
-    };
+    // Expiración del chat 12h después del plan
+    const chatExpiresAt = new Date(dt.getTime() + 12 * 60 * 60 * 1000).toISOString();
 
-    pushJSON<Plan>("plans", plan);
-    window.location.href = `/plan/${id}`;
+    // Insertar plan en Supabase
+    const { data, error } = await supabase
+    .from("plans")
+    .insert([
+      {
+        title,
+        emoji: emoji || undefined,      // <-- undefined en vez de null
+        time_iso: dt.toISOString(),
+        place: place || undefined,
+        lat,
+        lng,
+        chat_expires_at: chatExpiresAt || undefined
+      }
+    ])
+    .select();
+  
+
+    if (error) {
+      console.error(error);
+      return alert("Error creando el plan");
+    }
+
+    if (!data || data.length === 0) return alert("Error creando el plan");
+
+    const planId = data[0].id;
+
+    // Crear chat grupal asociado al plan
+    const { error: chatError } = await supabase
+      .from("chats")
+      .insert([
+        {
+          plan_id: planId,
+          expires_at: chatExpiresAt,
+        },
+      ]);
+
+    if (chatError) {
+      console.error(chatError);
+      // No bloqueamos al usuario, pero avisamos
+      alert("Plan creado, pero no se pudo crear el chat");
+    }
+
+    // Redirigir al plan
+    window.location.href = `/plan/${planId}`;
   };
 
   const inputClasses =
@@ -86,13 +125,12 @@ export default function NewPlanPage() {
   const nowTime = new Date().toTimeString().slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4">
+    <div className="min-h-screen bg-black flex items-center justify-center px-4 py-8">
       <div className="bg-gray-900 rounded-3xl shadow-xl p-6 w-full max-w-md flex flex-col gap-4 border border-gray-800">
         <h1 className="text-2xl font-bold text-center text-white">Crear Plan</h1>
 
         {/* Emoji + título */}
         <div className="flex gap-2 items-center relative">
-          {/* Selector de emojis */}
           <div className="relative">
             <button
               type="button"
@@ -120,7 +158,6 @@ export default function NewPlanPage() {
             )}
           </div>
 
-          {/* Input del título */}
           <input
             className={inputClasses}
             placeholder="Título (ej. Cañas en Malasaña)"
@@ -133,7 +170,7 @@ export default function NewPlanPage() {
         <div className="flex gap-2">
           <input
             type="date"
-            className="flex-2 p-3 rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm placeholder:text-gray-400"
+            className="flex-1 p-3 rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm placeholder:text-gray-400"
             value={date}
             min={today}
             onChange={(e) => setDate(e.target.value)}
@@ -152,7 +189,7 @@ export default function NewPlanPage() {
           {lat && lng ? (
             <>
               <p>{place}</p>
-              <div className="rounded-xl overflow-hidden h-32 border border-gray-700">
+              <div className="rounded-xl overflow-hidden h-32 border border-gray-700 mt-2">
                 <Map
                   lat={lat}
                   lng={lng}

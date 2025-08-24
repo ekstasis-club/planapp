@@ -9,7 +9,7 @@ type Props = {
   emoji: string;
   time: string;   // hora (ej: "20:00")
   date: string;   // fecha (ej: "2025-08-25")
-  place: string;
+  place: string  | null; 
 };
 
 export default function PlanCard({ id, title, emoji, time, date, place }: Props) {

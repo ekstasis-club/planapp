@@ -3,42 +3,59 @@
 import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
-import { readJSON, writeJSON } from "../../../lib/storage";
-import type { Plan } from "../../../lib/types";
+import { readJSON, writeJSON } from "@/lib/storage";
+import { supabase } from "@/lib/supabaseClient";
+import type { Database } from "@/lib/database.types";
 
 // Import dinámico del mapa para evitar SSR
 const Map = dynamic(() => import("../new/Map"), { ssr: false });
+
+// Tipado del plan
+type Plan = Database["public"]["Tables"]["plans"]["Row"];
 
 export default function PlanPage() {
   const { id } = useParams() as { id: string };
   const [plan, setPlan] = useState<Plan | null>(null);
   const [attendees, setAttendees] = useState<string[]>([]);
 
-  // Coordenadas del mapa
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [place, setPlace] = useState<string>("");
 
-  const keyPlans = "plans";
   const keyAtt = `attendees_${id}`;
 
   useEffect(() => {
-    const all = readJSON<Plan[]>(keyPlans, []);
-    const found = all.find(p => p.id === id) || null;
-    setPlan(found);
-    setAttendees(readJSON<string[]>(keyAtt, []));
+    const fetchPlan = async () => {
+      if (!id) return;
+      const { data, error } = await supabase
+        .from("plans")
+        .select("*")
+        .eq("id", id)
+        .single();
 
-    // Si el plan tiene coordenadas, las usamos
-    if (found?.lat && found?.lng) {
-      setLat(found.lat);
-      setLng(found.lng);
-      setPlace(found.place || "");
-    }
+      if (error) {
+        console.error(error);
+        setPlan(null);
+        return;
+      }
+
+      if (data) {
+        setPlan(data);
+        setLat(data.lat);
+        setLng(data.lng);
+        setPlace(data.place || "");
+      }
+    };
+
+    fetchPlan();
+
+    // cargar asistentes desde localStorage
+    setAttendees(readJSON<string[]>(keyAtt, []));
   }, [id, keyAtt]);
 
   const timeText = useMemo(() => {
     if (!plan) return "";
-    const d = new Date(plan.timeISO);
+    const d = new Date(plan.time_iso);
     return d.toLocaleString([], { dateStyle: "short", timeStyle: "short" });
   }, [plan]);
 
@@ -76,7 +93,7 @@ export default function PlanPage() {
             setLat={() => {}}
             setLng={() => {}}
             setPlace={() => {}}
-            draggable={false} // <-- marcador fijo
+            draggable={false} // marcador fijo
           />
         </div>
       )}
@@ -89,16 +106,6 @@ export default function PlanPage() {
         >
           Apuntarme 🚀
         </button>
-
-        {plan.groupLink && (
-          <a
-            href={plan.groupLink}
-            target="_blank"
-            className="w-full py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-green-500 to-teal-400 shadow-lg text-center hover:opacity-90 transition"
-          >
-            Entrar al grupo
-          </a>
-        )}
       </div>
 
       {/* Lista de asistentes */}

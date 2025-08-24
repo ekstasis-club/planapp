@@ -1,23 +1,28 @@
 export type PlanVisibility = "public" | "link" | "private";
 
+
 export interface Plan {
   id: string;
   title: string;
-  emoji: string;
-  timeISO: string; // 2025-08-23T20:00:00.000Z
-  place?: string;
-  lat?: number;
-  lng?: number;
-  visibility: PlanVisibility;
-  groupLink?: string;
-  createdBy: string; // @instagram (texto)
-  createdAt: number; // Date.now()
-  expiresAt?: number;
+  time_iso: string;
+  place: string | null;
+  lat: number | null;
+  lng: number | null;
+  emoji: string | null;
+  chat_expires_at: string;
 }
 
 export interface Attendee {
   id: string;
-  planId: string;
-  handle: string; // @usuario o 'anónimo'
-  joinedAt: number;
+  handle: string;
+  plan_id: string;
 }
+
+export interface ChatMessage {
+  id: string;
+  plan_id: string;
+  handle: string;
+  message: string;
+  created_at: string;
+}
+
