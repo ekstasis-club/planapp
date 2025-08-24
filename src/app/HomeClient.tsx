@@ -167,20 +167,23 @@ export default function HomeClient() {
 <div className="flex gap-2 py-2 px-1 items-center relative z-50">
 
   {/* Emoji */}
-  <div className="relative">
-    <button
-      onClick={() => setEmojiOpen((prev) => !prev)}
-      className={`flex-shrink-0 px-3 py-1 text-sm rounded-full font-medium transition ${
-        !emojiFilter ? "bg-zinc-700 text-white" : "bg-black text-white"
-      }`}
-    >
-      {emojiFilter ?? "All"} {emojiOpen ? "▲" : "▼"}
-    </button>
+  {/* Emoji */}
+<div className="relative">
+  <button
+    onClick={() => setEmojiOpen((prev) => !prev)}
+    className={`flex-shrink-0 px-3 py-1 text-sm rounded-full font-medium transition ${
+      !emojiFilter ? "bg-zinc-700 text-white" : "bg-black text-white"
+    }`}
+  >
+    {emojiFilter ?? "All"} {emojiOpen ? "▲" : "▼"}
+  </button>
 
-    {/* Desplegable de emojis */}
-    {emojiOpen && (
-      <div className="absolute top-full left-0 flex gap-1 mt-2 p-2 bg-zinc-900 rounded-xl shadow-lg z-50 whitespace-nowrap">
-        {allEmojis.map((em) => (
+  {/* Desplegable de emojis */}
+  {emojiOpen && (
+    <div className="absolute top-full left-0 flex gap-1 mt-2 p-2 bg-zinc-900 rounded-xl shadow-lg z-50 whitespace-nowrap">
+      {allEmojis
+        .filter((em) => em !== emojiFilter) // ⬅️ Oculta el seleccionado
+        .map((em) => (
           <button
             key={em}
             onClick={() => {
@@ -193,21 +196,25 @@ export default function HomeClient() {
           </button>
         ))}
 
-        {emojiFilter && (
-          <button
-            onClick={() => setEmojiFilter(null)}
-            className="px-2 py-1 text-sm rounded-full bg-white text-black hover:bg-black hover:text-white transition"
-          >
-            ✕
-          </button>
-        )}
-      </div>
-    )}
-  </div>
+{emojiFilter && (
+  <button
+    onClick={() => {
+      setEmojiFilter(null);
+      setEmojiOpen(false);
+    }}
+    className="px-2 py-1 text-sm rounded-full bg-gray-400 text-black hover:bg-black hover:text-white transition"
+  >
+    ✕
+  </button>
+)}
+    </div>
+  )}
+</div>
+
 
 {/* Fecha */}
-<div className="relative flex items-center">
-  {/* Icono minimalista de calendario */}
+<div className="relative flex items-center w-36 sm:w-40">
+  {/* Icono de calendario */}
   <svg
     xmlns="http://www.w3.org/2000/svg"
     className="w-5 h-5 text-white absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -222,25 +229,37 @@ export default function HomeClient() {
     <line x1={3} y1={10} x2={21} y2={10} />
   </svg>
 
-  {/* Input tipo date */}
+  {/* Input tipo text/date */}
   <input
-    type="date"
-    value={dateFilter ?? ""}
+    type="text"
+    value={
+      dateFilter
+        ? (() => {
+            const d = new Date(dateFilter);
+            const day = String(d.getDate()).padStart(2, "0");
+            const month = String(d.getMonth() + 1).padStart(2, "0");
+            const year = d.getFullYear();
+            return `${day}-${month}-${year}`;
+          })()
+        : ""
+    }
+    placeholder="Fecha"
+    onFocus={(e) => (e.target.type = "date")}
+    onBlur={(e) => (e.target.type = "text")}
     onChange={(e) => setDateFilter(e.target.value || null)}
-    className="pl-10 pr-10 py-2 text-sm rounded-full bg-zinc-700 text-white focus:outline-none w-44"
+    className="pl-10 pr-8 py-2 text-sm rounded-full bg-zinc-700 text-white placeholder-gray-400 focus:outline-none w-full"
   />
 
   {/* Botón de reset */}
   {dateFilter && (
     <button
       onClick={() => setDateFilter(null)}
-      className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-sm rounded-full bg-white text-black hover:bg-black hover:text-white transition"
+      className="absolute right-2 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center text-xs rounded-full bg-white text-black hover:bg-black hover:text-white transition"
     >
       ✕
     </button>
   )}
 </div>
-
 
 </div>
 
