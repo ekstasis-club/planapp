@@ -22,10 +22,13 @@ const demoPlans: Plan[] = [
   { id: "6", title: "Concierto local", emoji: "🎸", time: "21:00", date: "2025-08-29", place: "Sala Riviera" },
 ];
 
+const allEmojis = Array.from(new Set(demoPlans.map((p) => p.emoji)));
+
 export default function HomeClient() {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [denied, setDenied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [emojiFilter, setEmojiFilter] = useState<string | null>(null);
 
   const requestLocation = () => {
     if (!navigator.geolocation) {
@@ -54,17 +57,53 @@ export default function HomeClient() {
     requestLocation();
   }, []);
 
+  const filteredPlans = emojiFilter
+    ? demoPlans.filter((p) => p.emoji === emojiFilter)
+    : demoPlans;
+
   return (
     <div className="min-h-screen bg-black pb-24">
       {/* Header */}
       <header className="flex items-center justify-between px-5 py-4 bg-black border-b border-zinc-800 sticky top-0 z-10">
-        <h1 className="text-xl font-bold text-white">Planes cerca de ti</h1>
-        <Link href="/plan/new" className="text-purple-400 font-bold">
-          Crear
-        </Link>
-      </header>
+  <div className="flex flex-col md:flex-row items-start md:items-center gap-1 md:gap-2">
+    {/* Logo / título grande */}
+    <h1 className="text-2xl md:text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400">
+      PLANAPP
+    </h1>
+  </div>
+</header>
 
-      <main className="p-4">
+
+      <main className="p-4 space-y-4">
+        {/* Filtro de emojis en línea estilo Instagram */}
+        <div className="flex gap-2 overflow-x-auto py-2 px-1">
+  <button
+    onClick={() => setEmojiFilter(null)}
+    className={`flex-shrink-0 px-3 py-1 rounded-xl font-medium shadow-md transition transform hover:scale-110 ${
+      emojiFilter === null
+        ? "bg-purple-500 text-white"
+        : "bg-zinc-800 text-gray-300 hover:bg-zinc-700"
+    }`}
+  >
+    Todos
+  </button>
+
+  {allEmojis.map((em) => (
+    <button
+      key={em}
+      onClick={() => setEmojiFilter(em)}
+      className={`flex-shrink-0 px-3 py-1 rounded-xl font-medium shadow-md transition transform hover:scale-125 ${
+        emojiFilter === em
+          ? "bg-purple-500 text-white"
+          : "bg-zinc-800 text-gray-300 hover:bg-zinc-700"
+      }`}
+    >
+      {em}
+    </button>
+  ))}
+</div>
+
+
         {/* Estado: cargando ubicación */}
         {loading && !coords && !denied && (
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-md mb-6 text-center animate-pulse">
@@ -95,11 +134,15 @@ export default function HomeClient() {
         {/* Grid de planes */}
         {(coords || denied) && !loading && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {demoPlans.map((plan) => (
-              <div key={plan.id} className="w-full h-full">
-                <PlanCard {...plan} />
-              </div>
-            ))}
+            {filteredPlans.length > 0 ? (
+              filteredPlans.map((plan) => (
+                <div key={plan.id} className="w-full h-full">
+                  <PlanCard {...plan} />
+                </div>
+              ))
+            ) : (
+              <p className="text-gray-400 text-center col-span-full mt-4">No hay planes para este emoji 😕</p>
+            )}
           </div>
         )}
       </main>

@@ -11,9 +11,18 @@ interface MapProps {
   setLat: (lat: number) => void;
   setLng: (lng: number) => void;
   setPlace: (place: string) => void;
+  draggable?: boolean; // <-- nuevo prop
 }
 
-export default function MapComponent({ lat, lng, place, setLat, setLng, setPlace }: MapProps) {
+export default function MapComponent({
+  lat,
+  lng,
+  place,
+  setLat,
+  setLng,
+  setPlace,
+  draggable = true, // por defecto se puede mover
+}: MapProps) {
   const mapRef = useRef<L.Map | null>(null);
 
   const markerIcon = new L.Icon({
@@ -30,6 +39,8 @@ export default function MapComponent({ lat, lng, place, setLat, setLng, setPlace
   }, [lat, lng]);
 
   const handleDragEnd = async (event: L.DragEndEvent) => {
+    if (!draggable) return; // si no es draggable, ignorar
+
     const newPos = event.target.getLatLng();
     setLat(newPos.lat);
     setLng(newPos.lng);
@@ -57,20 +68,25 @@ export default function MapComponent({ lat, lng, place, setLat, setLng, setPlace
 
   return (
     <div className="w-full h-[300px] rounded-xl overflow-hidden shadow-md">
-      {/* Render condicional dentro del JSX, hooks ya ejecutados */}
       {lat && lng ? (
         <MapContainer
           center={[lat, lng]}
           zoom={13}
           style={{ width: "100%", height: "100%" }}
-          scrollWheelZoom={true}
+          scrollWheelZoom={false} // evitar zoom con scroll
+          dragging={draggable}    // activar/desactivar arrastre
           ref={mapRef}
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
           />
-          <Marker draggable position={[lat, lng]} icon={markerIcon} eventHandlers={{ dragend: handleDragEnd }}>
+          <Marker
+            draggable={draggable}
+            position={[lat, lng]}
+            icon={markerIcon}
+            eventHandlers={{ dragend: handleDragEnd }}
+          >
             <Popup>{place}</Popup>
           </Marker>
         </MapContainer>

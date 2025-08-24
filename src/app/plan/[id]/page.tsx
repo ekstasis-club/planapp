@@ -1,24 +1,41 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { readJSON, writeJSON } from "../../../lib/storage";
 import type { Plan } from "../../../lib/types";
+
+// Import dinámico del mapa para evitar SSR
+const Map = dynamic(() => import("../new/Map"), { ssr: false });
 
 export default function PlanPage() {
   const { id } = useParams() as { id: string };
   const [plan, setPlan] = useState<Plan | null>(null);
   const [attendees, setAttendees] = useState<string[]>([]);
 
+  // Coordenadas del mapa
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
+  const [place, setPlace] = useState<string>("");
+
   const keyPlans = "plans";
   const keyAtt = `attendees_${id}`;
 
   useEffect(() => {
     const all = readJSON<Plan[]>(keyPlans, []);
-    setPlan(all.find(p => p.id === id) || null);
+    const found = all.find(p => p.id === id) || null;
+    setPlan(found);
     setAttendees(readJSON<string[]>(keyAtt, []));
+
+    // Si el plan tiene coordenadas, las usamos
+    if (found?.lat && found?.lng) {
+      setLat(found.lat);
+      setLng(found.lng);
+      setPlace(found.place || "");
+    }
   }, [id, keyAtt]);
-  
+
   const timeText = useMemo(() => {
     if (!plan) return "";
     const d = new Date(plan.timeISO);
@@ -34,7 +51,11 @@ export default function PlanPage() {
   };
 
   if (!plan)
-    return <div className="min-h-screen flex items-center justify-center text-white text-center p-4">Plan no encontrado</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center text-white text-center p-4">
+        Plan no encontrado
+      </div>
+    );
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center gap-6 p-4 pb-24">
@@ -44,6 +65,21 @@ export default function PlanPage() {
         <h1 className="text-2xl font-bold text-white text-center">{plan.title}</h1>
         <p className="text-gray-400 text-sm">{timeText}{plan.place ? ` · ${plan.place}` : ""}</p>
       </div>
+
+      {/* Mapa solo visual */}
+      {lat && lng && (
+        <div className="w-full max-w-md rounded-3xl overflow-hidden shadow-lg">
+          <Map
+            lat={lat}
+            lng={lng}
+            place={place}
+            setLat={() => {}}
+            setLng={() => {}}
+            setPlace={() => {}}
+            draggable={false} // <-- marcador fijo
+          />
+        </div>
+      )}
 
       {/* Botones */}
       <div className="w-full max-w-md flex flex-col gap-3">
