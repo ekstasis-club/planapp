@@ -31,31 +31,51 @@ export default function PlanPage() {
     const next = [handle, ...current];
     writeJSON(keyAtt, next);
     setAttendees(next);
-    alert("¡Te has apuntado!");
   };
 
-  if (!plan) return <div className="p-4">Plan no encontrado</div>;
+  if (!plan)
+    return <div className="min-h-screen flex items-center justify-center text-white text-center p-4">Plan no encontrado</div>;
 
   return (
-    <div className="p-4 space-y-4 pb-24">
-      <h1 className="text-2xl font-bold">{plan.emoji} {plan.title}</h1>
-      <p className="text-gray-600">{timeText}{plan.place ? ` · ${plan.place}` : ""}</p>
+    <div className="min-h-screen bg-black flex flex-col items-center gap-6 p-4 pb-24">
+      {/* Card principal */}
+      <div className="w-full max-w-md bg-gray-900 rounded-3xl shadow-lg p-6 flex flex-col gap-4 items-center border border-gray-800">
+        <div className="text-5xl">{plan.emoji}</div>
+        <h1 className="text-2xl font-bold text-white text-center">{plan.title}</h1>
+        <p className="text-gray-400 text-sm">{timeText}{plan.place ? ` · ${plan.place}` : ""}</p>
+      </div>
 
-      <button onClick={join} className="w-full bg-purple-600 text-white py-3 rounded-xl font-bold">
-        Apuntarme
-      </button>
+      {/* Botones */}
+      <div className="w-full max-w-md flex flex-col gap-3">
+        <button
+          onClick={join}
+          className="w-full py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 shadow-lg hover:opacity-90 transition"
+        >
+          Apuntarme 🚀
+        </button>
 
-      {plan.groupLink && (
-        <a href={plan.groupLink} target="_blank" className="block text-center w-full bg-green-600 text-white py-3 rounded-xl font-bold">
-          Entrar al grupo
-        </a>
-      )}
+        {plan.groupLink && (
+          <a
+            href={plan.groupLink}
+            target="_blank"
+            className="w-full py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-green-500 to-teal-400 shadow-lg text-center hover:opacity-90 transition"
+          >
+            Entrar al grupo
+          </a>
+        )}
+      </div>
 
-      <section>
-        <h2 className="font-bold mb-2">Asistentes ({attendees.length})</h2>
-        <ul className="bg-white border border-gray-100 rounded-xl divide-y">
+      {/* Lista de asistentes */}
+      <section className="w-full max-w-md">
+        <h2 className="font-bold mb-3 text-white text-lg">Asistentes ({attendees.length})</h2>
+        <ul className="bg-gray-900 border border-gray-800 rounded-3xl divide-y divide-gray-800 shadow-inner">
           {attendees.map((h, i) => (
-            <li key={i} className="p-3 text-sm">{h}</li>
+            <li key={i} className="p-3 flex items-center gap-3 text-white text-sm hover:bg-gray-800 transition">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 flex items-center justify-center font-bold text-white shadow-md">
+                {h[0].toUpperCase()}
+              </div>
+              <span>{h}</span>
+            </li>
           ))}
         </ul>
       </section>

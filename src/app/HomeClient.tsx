@@ -34,7 +34,7 @@ export default function HomeClient() {
       return;
     }
 
-    setLoading(true); // ⬅️ volvemos a mostrar "pidiendo ubicación"
+    setLoading(true);
     setDenied(false);
 
     navigator.geolocation.getCurrentPosition(
@@ -55,11 +55,11 @@ export default function HomeClient() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24">
+    <div className="min-h-screen bg-black pb-24">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 py-4 bg-white shadow-sm sticky top-0 z-10">
-        <h1 className="text-xl font-bold">Planes cerca de ti</h1>
-        <Link href="/plan/new" className="text-purple-600 font-bold">
+      <header className="flex items-center justify-between px-5 py-4 bg-black border-b border-zinc-800 sticky top-0 z-10">
+        <h1 className="text-xl font-bold text-white">Planes cerca de ti</h1>
+        <Link href="/plan/new" className="text-purple-400 font-bold">
           Crear
         </Link>
       </header>
@@ -67,21 +67,21 @@ export default function HomeClient() {
       <main className="p-4">
         {/* Estado: cargando ubicación */}
         {loading && !coords && !denied && (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-2xl p-6 shadow-md mb-6 text-center animate-pulse">
-            <div className="text-lg font-medium text-gray-700">📍 Pidiendo tu ubicación…</div>
-            <p className="text-sm text-gray-500 mt-1">Para mostrarte planes cercanos a ti</p>
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-md mb-6 text-center animate-pulse">
+            <div className="text-lg font-medium text-gray-100">📍 Pidiendo tu ubicación…</div>
+            <p className="text-sm text-gray-400 mt-1">Para mostrarte planes cercanos a ti</p>
           </div>
         )}
 
         {/* Estado: ubicación denegada */}
         {denied && !loading && (
-          <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-100 rounded-2xl p-6 shadow-md mb-6 text-center flex flex-col items-center">
-            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-red-100 text-red-600 mb-3">
+          <div className="bg-zinc-900 border border-red-500 rounded-2xl p-6 shadow-md mb-6 text-center flex flex-col items-center">
+            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-red-500/20 text-red-400 mb-3">
               ⚠️
             </div>
-            <h2 className="text-base font-semibold text-gray-800">No pudimos acceder a tu ubicación</h2>
-            <p className="text-sm text-gray-500 mt-1">
-              Te mostramos algunos <span className="font-medium text-red-600">planes populares</span> cerca de ti.
+            <h2 className="text-base font-semibold text-white">No pudimos acceder a tu ubicación</h2>
+            <p className="text-sm text-gray-400 mt-1">
+              Te mostramos algunos <span className="font-medium text-red-400">planes populares</span> cerca de ti.
             </p>
             <button
               onClick={requestLocation}
@@ -103,15 +103,6 @@ export default function HomeClient() {
           </div>
         )}
       </main>
-
-      {/* Botón flotante */}
-      <Link
-        href="/plan/new"
-        className="fixed bottom-5 right-5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full w-14 h-14 flex items-center justify-center text-3xl shadow-lg"
-        aria-label="Crear plan"
-      >
-        +
-      </Link>
     </div>
   );
 }

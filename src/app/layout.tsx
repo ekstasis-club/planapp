@@ -1,4 +1,5 @@
 import "./globals.css";
+import BottomNav from "./components/BottomNav";
 import type { ReactNode } from "react";
 
 export const metadata = {
@@ -23,9 +24,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="theme-color" content="#8b5cf6" />
       </head>
-      <body className="bg-gray-50 text-gray-900 font-sans">
+      <body className="bg-black text-gray-900 font-sans">
         <main className="max-w-md mx-auto min-h-screen flex flex-col">
           {children}
+          <BottomNav />
         </main>
       </body>
     </html>
