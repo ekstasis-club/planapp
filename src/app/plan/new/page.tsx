@@ -9,7 +9,6 @@ const Map = dynamic(() => import("./Map"), { ssr: false });
 
 const EMOJIS = ["🎉","🍻","🎬","🎮","🏖️","🏃‍♂️","🍕","☕","🎵","📸","🛶","🏔️"];
 
-// Tipos usando los generados por Supabase
 type PlanRow = Database["public"]["Tables"]["plans"]["Row"];
 type PlanInsert = Database["public"]["Tables"]["plans"]["Insert"];
 
@@ -24,7 +23,6 @@ export default function NewPlanPage() {
   const [lng, setLng] = useState<number | null>(null);
   const [place, setPlace] = useState<string>("");
 
-  // Inicializar fecha y hora
   useEffect(() => {
     const now = new Date();
     setDate(now.toISOString().split("T")[0]);
@@ -35,7 +33,6 @@ export default function NewPlanPage() {
     setTime(`${hh}:${mm}`);
   }, []);
 
-  // Obtener ubicación
   useEffect(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -62,7 +59,6 @@ export default function NewPlanPage() {
     });
   }, []);
 
-  // Crear plan y chat en Supabase
   const createPlan = async () => {
     if (!title || !time || !date) return alert("Añade título, fecha y hora");
 
@@ -70,25 +66,22 @@ export default function NewPlanPage() {
     const [hours, minutes] = time.split(":").map(Number);
     const dt = new Date(year, month - 1, day, hours, minutes);
 
-    // Expiración del chat 12h después del plan
     const chatExpiresAt = new Date(dt.getTime() + 12 * 60 * 60 * 1000).toISOString();
 
-    // Insertar plan en Supabase
     const { data, error } = await supabase
-    .from("plans")
-    .insert([
-      {
-        title,
-        emoji: emoji || undefined,      // <-- undefined en vez de null
-        time_iso: dt.toISOString(),
-        place: place || undefined,
-        lat,
-        lng,
-        chat_expires_at: chatExpiresAt || undefined
-      }
-    ])
-    .select();
-  
+      .from("plans")
+      .insert([
+        {
+          title,
+          emoji: emoji || undefined,
+          time_iso: dt.toISOString(),
+          place: place || undefined,
+          lat,
+          lng,
+          chat_expires_at: chatExpiresAt || undefined
+        }
+      ])
+      .select();
 
     if (error) {
       console.error(error);
@@ -99,49 +92,41 @@ export default function NewPlanPage() {
 
     const planId = data[0].id;
 
-    // Crear chat grupal asociado al plan
     const { error: chatError } = await supabase
       .from("chats")
-      .insert([
-        {
-          plan_id: planId,
-          expires_at: chatExpiresAt,
-        },
-      ]);
+      .insert([{ plan_id: planId, expires_at: chatExpiresAt }]);
 
     if (chatError) {
       console.error(chatError);
-      // No bloqueamos al usuario, pero avisamos
       alert("Plan creado, pero no se pudo crear el chat");
     }
 
-    // Redirigir al plan
     window.location.href = `/plan/${planId}`;
   };
 
   const inputClasses =
-    "w-full p-3 rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm placeholder:text-gray-400";
+    "w-full p-3 rounded-xl bg-gray-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm placeholder:text-gray-500";
   const today = new Date().toISOString().split("T")[0];
   const nowTime = new Date().toTimeString().slice(0, 5);
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4 py-8">
-      <div className="bg-gray-900 rounded-3xl shadow-xl p-6 w-full max-w-md flex flex-col gap-4 border border-gray-800">
-        <h1 className="text-2xl font-bold text-center text-white">Crear Plan</h1>
+      <div className="bg-white rounded-3xl shadow-xl p-6 w-full max-w-md flex flex-col gap-4 border border-gray-300">
+        <h1 className="text-2xl font-bold text-center text-gray-800">Crear Plan</h1>
 
         {/* Emoji + título */}
         <div className="flex gap-2 items-center relative">
           <div className="relative">
             <button
               type="button"
-              className="w-12 h-12 text-2xl flex items-center justify-center bg-gray-800 text-white rounded-xl hover:ring-2 hover:ring-purple-500 transition"
+              className="w-12 h-12 text-2xl flex items-center justify-center bg-gray-300 text-gray-800 rounded-xl hover:ring-2 hover:ring-purple-500 transition"
               onClick={() => setEmojiOpen(!emojiOpen)}
             >
               {emoji}
             </button>
 
             {emojiOpen && (
-              <div className="absolute top-14 left-0 bg-gray-800 shadow-lg rounded-xl p-2 flex gap-2 overflow-x-auto z-50 max-w-xs">
+              <div className="absolute top-14 left-0 bg-gray-200 shadow-lg rounded-xl p-2 flex gap-2 overflow-x-auto z-50 max-w-xs">
                 {EMOJIS.map((em) => (
                   <button
                     key={em}
@@ -149,7 +134,7 @@ export default function NewPlanPage() {
                       setEmoji(em);
                       setEmojiOpen(false);
                     }}
-                    className={`text-2xl p-1 rounded-xl hover:scale-125 transition-transform ${emoji === em ? "bg-purple-700" : ""}`}
+                    className={`text-2xl p-1 rounded-xl hover:scale-125 transition-transform ${emoji === em ? "bg-purple-200" : ""}`}
                   >
                     {em}
                   </button>
@@ -170,14 +155,14 @@ export default function NewPlanPage() {
         <div className="flex gap-2">
           <input
             type="date"
-            className="flex-1 p-3 rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm placeholder:text-gray-400"
+            className={inputClasses}
             value={date}
             min={today}
             onChange={(e) => setDate(e.target.value)}
           />
           <input
             type="time"
-            className="flex-1 p-3 rounded-xl bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm placeholder:text-gray-400"
+            className={inputClasses}
             value={time}
             onChange={(e) => setTime(e.target.value)}
             min={date === today ? nowTime : undefined}
@@ -185,11 +170,11 @@ export default function NewPlanPage() {
         </div>
 
         {/* Ubicación */}
-        <div className="text-center text-gray-400 text-sm">
+        <div className="flex flex-col gap-2">
           {lat && lng ? (
             <>
-              <p>{place}</p>
-              <div className="rounded-xl overflow-hidden h-32 border border-gray-700 mt-2">
+              <p className="text-left text-gray-700 text-sm font-medium">{place}</p>
+              <div className="rounded-xl overflow-hidden h-32 border border-gray-300">
                 <Map
                   lat={lat}
                   lng={lng}
@@ -201,7 +186,7 @@ export default function NewPlanPage() {
               </div>
             </>
           ) : (
-            <p>Obteniendo ubicación...</p>
+            <p className="text-left text-gray-700 text-sm">Obteniendo ubicación...</p>
           )}
         </div>
 
@@ -213,13 +198,21 @@ export default function NewPlanPage() {
           onChange={(e) => setHandle(e.target.value)}
         />
 
-        {/* Botón Crear */}
-        <button
-          onClick={createPlan}
-          className="w-full py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 hover:opacity-90 transition shadow-lg"
-        >
-          Crear 🚀
-        </button>
+        {/* Botones Crear + Cancelar */}
+        <div className="flex gap-2">
+          <button
+            onClick={createPlan}
+            className="flex-1 py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 hover:opacity-90 transition shadow-lg"
+          >
+            Crear 🚀
+          </button>
+          <button
+            onClick={() => window.history.back()}
+            className="py-3 px-4 rounded-2xl font-semibold text-white bg-gray-500 hover:bg-gray-400 transition text-sm"
+          >
+            Cancelar
+          </button>
+        </div>
       </div>
     </div>
   );
