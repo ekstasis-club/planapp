@@ -3,15 +3,11 @@
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
-import type { Database } from "@/lib/database.types";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Map = dynamic(() => import("./Map"), { ssr: false });
 
 const EMOJIS = ["🎉","🍻","🎬","🎮","🏖️","🏃‍♂️","🍕","☕","🎵","📸","🛶","🏔️"];
-
-type PlanRow = Database["public"]["Tables"]["plans"]["Row"];
-type PlanInsert = Database["public"]["Tables"]["plans"]["Insert"];
 
 export default function NewPlanPage() {
   const [title, setTitle] = useState("");

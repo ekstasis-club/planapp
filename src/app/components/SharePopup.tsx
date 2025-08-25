@@ -32,7 +32,7 @@ export default function SharePopup({ open, onClose, emoji, title, date, time }: 
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Emoji
+      // Emoji grande
       ctx.font = "200px Arial";
       ctx.textAlign = "center";
       ctx.fillText(emoji, canvas.width / 2, 350);
@@ -47,7 +47,7 @@ export default function SharePopup({ open, onClose, emoji, title, date, time }: 
       ctx.fillStyle = "rgba(255,255,255,0.7)";
       ctx.fillText(`${date} · ${time}`, canvas.width / 2, 700);
 
-      // 2. Convertir imagen a PNG
+      // 2. Convertir a PNG
       const imageData = canvas.toDataURL("image/png");
       const blob = await (await fetch(imageData)).blob();
       const file = new File([blob], "plan.png", { type: "image/png" });
@@ -56,6 +56,7 @@ export default function SharePopup({ open, onClose, emoji, title, date, time }: 
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
       if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
+        // Usamos Web Share API: Instagram aparecerá automáticamente si está instalado
         await navigator.share({
           files: [file],
           title: "Comparte este plan en Instagram",
@@ -64,8 +65,9 @@ export default function SharePopup({ open, onClose, emoji, title, date, time }: 
       } else if (isMobile) {
         // Fallback: abrir cámara de Instagram Stories
         window.location.href = "instagram-stories://share";
+        alert("Instagram se ha abierto. Selecciona la imagen descargada para subirla a tu story.");
       } else {
-        // 4. En escritorio → descarga automática
+        // En escritorio → descarga automática
         const a = document.createElement("a");
         a.href = imageData;
         a.download = `plan.png`;

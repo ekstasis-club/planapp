@@ -12,12 +12,25 @@ type Plan = {
   place: string | null;
   lat?: number;
   lng?: number;
-  city?: string;
+  city?: string | null;
   date: string;
   time: string;
   distance?: number;
-  attendees?: number; // nuevo
+  attendees?: number;
 };
+
+type SupabasePlan = {
+  id: string;
+  title: string;
+  emoji: string;
+  time_iso: string;
+  place: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  city?: string | null;
+  attendees?: { count: number }[];
+};
+
 
 export default function HomeClient() {
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -32,10 +45,10 @@ export default function HomeClient() {
   const [openFilter, setOpenFilter] = useState<"emoji" | "date" | null>(null);
 
   const isEmojiOpen = openFilter === "emoji";
-  const today = new Date().toISOString().split("T")[0];
 
   // Recuperar estado guardado
   useEffect(() => {
+    const today = new Date().toISOString().split("T")[0]; // moved inside
     const saved = sessionStorage.getItem("homeState");
     if (saved) {
       const { emojiFilter, dateFilter, coords } = JSON.parse(saved);
@@ -110,8 +123,7 @@ export default function HomeClient() {
         return;
       }
       if (!data) return;
-
-      const formatted: Plan[] = data.map((p: any) => {
+      const formatted: Plan[] = (data as SupabasePlan[]).map((p) => {
         const d = new Date(p.time_iso);
         let distance: number | undefined = undefined;
         if (coords && p.lat && p.lng) {
@@ -138,7 +150,7 @@ export default function HomeClient() {
           date: d.toISOString().split("T")[0],
           time: d.toTimeString().slice(0, 5),
           distance,
-          attendees: p.attendees?.length ?? 0 // aquí asignamos el número de asistentes
+          attendees: p.attendees?.length ?? 0,
         };
       });
 
@@ -163,6 +175,7 @@ export default function HomeClient() {
   }, []);
 
   const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+  const today = new Date().toISOString().split("T")[0];
 
   // Filtrar y ordenar
   const displayedPlans = plans
