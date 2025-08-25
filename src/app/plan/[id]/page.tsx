@@ -1,16 +1,24 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
 import { readJSON, writeJSON } from "@/lib/storage";
 import { supabase } from "@/lib/supabaseClient";
 import type { Database } from "@/lib/database.types";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 const Map = dynamic(() => import("../new/Map"), { ssr: false });
 
 type Plan = Database["public"]["Tables"]["plans"]["Row"];
+
+interface NavigatorShareFile {
+  files?: File[];
+  title?: string;
+  text?: string;
+  url?: string;
+}
 
 export default function PlanPage() {
   const { id } = useParams() as { id: string };
@@ -21,6 +29,11 @@ export default function PlanPage() {
   const [place, setPlace] = useState<string>("");
   const [showPopup, setShowPopup] = useState(false);
 
+  // Imagen para compartir (full) y preview pequeña
+  const [storyDataUrl, setStoryDataUrl] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const keyAtt = `attendees_${id}`;
 
   useEffect(() => {
@@ -51,7 +64,6 @@ export default function PlanPage() {
   }, [id, keyAtt]);
 
   useEffect(() => {
-    // Mostrar popup solo si viene de crear un nuevo plan
     if (sessionStorage.getItem("justCreatedPlan") === "true") {
       setShowPopup(true);
       sessionStorage.removeItem("justCreatedPlan");
@@ -63,6 +75,110 @@ export default function PlanPage() {
     const d = new Date(plan.time_iso);
     return d.toLocaleString([], { dateStyle: "full", timeStyle: "short" });
   }, [plan]);
+
+  useEffect(() => {
+    if (!showPopup || !plan) return;
+
+    const W = 1080;
+    const H = 1920;
+
+    const canvas = canvasRef.current ?? document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.fillStyle = "#000000";
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+
+    ctx.font =
+      '120px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif';
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(plan.emoji ?? "✨", W / 2, 280);
+
+    ctx.font = "bold 70px Arial";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(plan.title ?? "", W / 2, 500);
+
+    ctx.font = "28px Arial";
+    ctx.fillStyle = "#cccccc";
+    ctx.fillText(timeText ?? "", W / 2, 580);
+
+    const fullDataUrl = canvas.toDataURL("image/png");
+    setStoryDataUrl(fullDataUrl);
+
+    const previewWidth = 150;
+    const previewHeight = Math.round((H / W) * previewWidth);
+    const previewCanvas = document.createElement("canvas");
+    previewCanvas.width = previewWidth;
+    previewCanvas.height = previewHeight;
+    const pctx = previewCanvas.getContext("2d");
+    if (pctx) {
+      pctx.drawImage(canvas, 0, 0, previewWidth, previewHeight);
+      setPreview(previewCanvas.toDataURL("image/png"));
+    }
+  }, [showPopup, plan, timeText]);
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      alert("✅ Enlace copiado al portapapeles");
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = window.location.href;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      alert("✅ Enlace copiado al portapapeles");
+    }
+  };
+
+  const handleShare = async () => {
+    if (!storyDataUrl) return;
+
+    try {
+      const res = await fetch(storyDataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], "plan.png", { type: "image/png" });
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+      const nav = navigator as unknown as {
+        canShare?: (data: NavigatorShareFile) => boolean;
+        share?: (data: NavigatorShareFile) => Promise<void>;
+      };
+
+      if (isMobile && nav.canShare?.({ files: [file] }) && nav.share) {
+        await nav.share({
+          files: [file],
+          title: plan?.title ?? "Plan",
+          text: "¡Únete a este plan!",
+          url: window.location.href,
+        });
+        return;
+      }      
+
+      const a = document.createElement("a");
+      a.href = storyDataUrl;
+      a.download = "plan.png";
+      a.click();
+
+      if (isMobile) {
+        alert(
+          "Imagen descargada. Abre Instagram y súbela a tu historia desde la galería."
+        );
+      } else {
+        alert("Imagen descargada. Súbela manualmente a tu historia de Instagram.");
+      }
+    } catch (e) {
+      console.error("Error al compartir:", e);
+      alert("No se pudo compartir. Descarga la imagen y súbela manualmente.");
+    }
+  };
 
   const join = () => {
     const handle =
@@ -84,18 +200,16 @@ export default function PlanPage() {
   return (
     <>
       <div className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-black flex flex-col items-center gap-6 p-4 pb-28 pt-20">
-        {/* Tarjeta principal */}
         <div className="w-full max-w-md bg-white/10 backdrop-blur-xl rounded-3xl shadow-xl border border-white/10 p-6 flex flex-col items-center gap-4 animate-fadeIn">
-          <div className="text-6xl drop-shadow-sm">{plan.emoji}</div>
+          <div className="text-6xl drop-shadow-sm">{plan.emoji ?? "✨"}</div>
           <h1 className="text-3xl font-bold text-white text-center leading-snug">
-            {plan.title}
+            {plan.title ?? ""}
           </h1>
           <p className="text-white/70 text-sm text-center font-medium">
             {timeText} {plan.place ? ` · ${plan.place}` : ""}
           </p>
         </div>
 
-        {/* Mapa */}
         {lat && lng && (
           <div className="w-full max-w-md rounded-3xl overflow-hidden shadow-lg border border-white/10 animate-fadeIn">
             <div className="h-[220px] w-full">
@@ -112,7 +226,6 @@ export default function PlanPage() {
           </div>
         )}
 
-        {/* Botón principal */}
         <div className="w-full max-w-md flex flex-col gap-3 animate-fadeIn">
           <button
             onClick={join}
@@ -122,7 +235,6 @@ export default function PlanPage() {
           </button>
         </div>
 
-        {/* Lista de asistentes */}
         <section className="w-full max-w-md animate-fadeIn">
           <h2 className="font-semibold mb-3 text-white text-lg">
             Asistentes ({attendees.length})
@@ -143,7 +255,6 @@ export default function PlanPage() {
         </section>
       </div>
 
-      {/* Popup para compartir en Instagram */}
       <AnimatePresence>
         {showPopup && (
           <motion.div
@@ -157,25 +268,45 @@ export default function PlanPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ type: "spring", stiffness: 260, damping: 20 }}
-              className="bg-black rounded-3xl border border-white/10 p-6 max-w-sm w-full shadow-2xl flex flex-col items-center gap-4 text-center"
+              className="bg-black rounded-3xl border border-white/10 p-6 max-w-sm w-full shadow-2xl flex flex-col items-center gap-3 text-center"
             >
-              <span className="text-6xl">{plan.emoji}</span>
-              <h2 className="text-2xl font-bold text-white">{plan.title}</h2>
-              <p className="text-white/70 text-lg">{timeText}</p>
+              <canvas ref={canvasRef} className="hidden" />
+
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-3xl">{plan.emoji ?? "✨"}</span>
+                <h2 className="text-xl font-bold text-white">{plan.title ?? ""}</h2>
+              </div>
+
+              <p className="text-white/70 text-sm">{timeText ?? ""}</p>
+
+              {preview && (
+                <Image
+                  src={preview}
+                  alt="Previsualización historia"
+                  width={150}
+                  height={Math.round((1920 / 1080) * 150)}
+                  className="rounded-lg shadow-lg border-2 border-white"
+                />
+              )}
 
               <button
-                onClick={() => {
-                  const storyUrl = "https://www.instagram.com/stories/create/";
-                  window.open(storyUrl, "_blank");
-                }}
-                className="mt-4 px-6 py-3 rounded-2xl font-semibold bg-white text-black shadow-lg hover:bg-gray-200 transition"
+                onClick={handleCopyLink}
+                className="mt-1 px-6 py-3 rounded-2xl font-semibold bg-gray-200 text-black shadow-lg hover:bg-gray-300 transition w-full"
+              >
+                Copiar enlace 🔗
+              </button>
+
+              <button
+                onClick={handleShare}
+                className="px-6 py-3 rounded-2xl font-semibold bg-white text-black shadow-lg hover:bg-gray-200 transition w-full"
+                disabled={!storyDataUrl}
               >
                 Compartir en Instagram 📸
               </button>
 
               <button
                 onClick={() => setShowPopup(false)}
-                className="text-white/60 hover:text-white mt-2 text-sm"
+                className="text-white/60 hover:text-white mt-1 text-sm"
               >
                 Cerrar
               </button>
