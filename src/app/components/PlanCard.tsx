@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MapPin, Calendar, Clock } from "lucide-react";
+import { MapPin, Calendar, Clock, Users } from "lucide-react";
 
 type Props = {
   id: string;
@@ -10,9 +10,10 @@ type Props = {
   time: string;
   date: string;
   place: string | null; 
+  attendees?: number;
 };
 
-export default function PlanCard({ id, title, emoji, time, date, place }: Props) {
+export default function PlanCard({ id, title, emoji, time, date, place, attendees }: Props) {
   const formattedDate = new Date(date).toLocaleDateString("es-ES", {
     day: "2-digit",
     month: "2-digit",
@@ -21,10 +22,9 @@ export default function PlanCard({ id, title, emoji, time, date, place }: Props)
   return (
     <Link
       href={`/plan/${id}`}
-      className="relative w-full aspect-square md:aspect-auto md:h-48 
-                 bg-white rounded-2xl shadow-lg flex flex-col items-center 
-                 justify-between text-gray-900 hover:scale-[1.02] 
-                 transition-transform overflow-hidden p-5"
+      className="relative w-full aspect-square md:aspect-auto md:h-56 
+                 bg-white rounded-2xl shadow-lg flex flex-col p-4 text-gray-900 
+                 hover:scale-[1.02] transition-transform overflow-hidden"
     >
       {/* Fecha y hora */}
       <div className="absolute top-3 left-3 right-3 flex justify-between gap-2">
@@ -38,14 +38,12 @@ export default function PlanCard({ id, title, emoji, time, date, place }: Props)
         </span>
       </div>
 
-      {/* Contenido central: título ocupa la mayor parte */}
-      <div className="flex flex-col items-center justify-center flex-1 px-2 text-center mt-1 md:mt-0">
-        {/* Emoji pequeño arriba */}
-        <div className="text-xl md:text-2xl mb-1">{emoji}</div>
-        {/* Título principal optimizado para más caracteres */}
+      {/* Contenido central */}
+      <div className="flex flex-col items-center justify-center flex-1 px-2 text-center mt-2">
+        <div className="text-3xl md:text-4xl mb-1">{emoji}</div>
         <div
-          className="text-sm md:text-base font-semibold tracking-tight leading-snug 
-                     line-clamp-2 overflow-hidden text-ellipsis break-all"
+          className="text-sm md:text-base font-bold tracking-tight leading-snug 
+                     line-clamp-2 overflow-hidden text-ellipsis break-words"
           title={title}
         >
           {title}
@@ -53,9 +51,17 @@ export default function PlanCard({ id, title, emoji, time, date, place }: Props)
       </div>
 
       {/* Localización */}
-      <div className="text-xs text-gray-600 flex items-center gap-1 truncate max-w-[90%] mb-2 break-all">
-        <MapPin size={12} className="text-gray-400 shrink-0" />
-        <span className="truncate">{place}</span>
+      <div className="text-xs text-gray-600 flex flex-col items-center gap-1 mt-1">
+        <div className="flex items-center gap-1 truncate max-w-[90%]">
+          <MapPin size={12} className="text-gray-400 shrink-0" />
+          <span className="truncate">{place}</span>
+        </div>
+        {attendees !== undefined && (
+          <div className="flex items-center gap-1 text-gray-500 text-[10px] md:text-xs">
+            <Users size={12} />
+            {attendees}
+          </div>
+        )}
       </div>
     </Link>
   );

@@ -16,6 +16,7 @@ type Plan = {
   date: string;
   time: string;
   distance?: number;
+  attendees?: number; // nuevo
 };
 
 export default function HomeClient() {
@@ -46,7 +47,6 @@ export default function HomeClient() {
     }
   }, []);
 
-  // Guardar estado en sessionStorage
   useEffect(() => {
     sessionStorage.setItem(
       "homeState",
@@ -54,7 +54,7 @@ export default function HomeClient() {
     );
   }, [emojiFilter, dateFilter, coords]);
 
-  // Solicitar geolocalización
+  // Geolocalización
   useEffect(() => {
     if (!coords) {
       if (!navigator.geolocation) {
@@ -79,7 +79,7 @@ export default function HomeClient() {
     }
   }, [coords]);
 
-  // Obtener userCity desde coords
+  // Obtener ciudad
   useEffect(() => {
     if (!coords || userCity) return;
 
@@ -94,23 +94,24 @@ export default function HomeClient() {
       .catch(() => setUserCity(null));
   }, [coords, userCity]);
 
-  // Traer planes de Supabase
+  // Traer planes y número de asistentes
   useEffect(() => {
     const fetchPlans = async () => {
       const { data, error } = await supabase
         .from("plans")
-        .select("*")
+        .select(`
+          *,
+          attendees:attendees(count)
+        `)
         .order("time_iso", { ascending: true });
 
       if (error) {
         console.error("Error fetching plans:", error);
         return;
       }
-
       if (!data) return;
 
-      // Formatear fechas y calcular distancia si coords existen
-      const formatted: Plan[] = data.map((p) => {
+      const formatted: Plan[] = data.map((p: any) => {
         const d = new Date(p.time_iso);
         let distance: number | undefined = undefined;
         if (coords && p.lat && p.lng) {
@@ -137,6 +138,7 @@ export default function HomeClient() {
           date: d.toISOString().split("T")[0],
           time: d.toTimeString().slice(0, 5),
           distance,
+          attendees: p.attendees?.length ?? 0 // aquí asignamos el número de asistentes
         };
       });
 
@@ -209,7 +211,6 @@ export default function HomeClient() {
       <main className="p-4 space-y-4 pt-12">
         {/* Filtros Emoji + Fecha */}
         <div className="flex gap-2 py-2 px-2 items-center relative z-50 bg-black/50 backdrop-blur-md rounded-xl">
-          {/* Emoji Filter */}
           <div id="emoji-filter" className="relative">
             <button
               onClick={() => setOpenFilter(isEmojiOpen ? null : "emoji")}
@@ -247,7 +248,6 @@ export default function HomeClient() {
               </div>
             )}
           </div>
-          {/* Fecha */}
           <div id="date-filter" className="relative w-36 sm:w-40">
             <input
               type="date"
@@ -260,21 +260,18 @@ export default function HomeClient() {
           </div>
         </div>
 
-        {/* Mensaje fecha inválida */}
         {invalidDate && (
           <div className="bg-yellow-500/10 border border-yellow-500 rounded-xl p-3 text-center text-yellow-400 text-sm">
             Fecha inválida. Te mostramos planes populares
           </div>
         )}
 
-        {/* Loading */}
         {loading && !coords && !denied && (
           <div className="flex items-center justify-center p-6">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
           </div>
         )}
 
-        {/* Ubicación denegada */}
         {denied && !loading && (
           <div className="bg-zinc-900 border border-red-500 rounded-xl p-4 shadow-md mb-6 text-center flex flex-col items-center">
             <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-500/20 mb-2">
@@ -291,14 +288,11 @@ export default function HomeClient() {
           </div>
         )}
 
-        {/* Planes */}
         {(coords || denied) && !loading && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {displayedPlans.length > 0 ? (
               displayedPlans.map((plan) => (
-                <div key={plan.id} className="w-full h-full">
-                  <PlanCard {...plan} />
-                </div>
+                <PlanCard key={plan.id} {...plan} />
               ))
             ) : (
               <p className="text-gray-400 text-center col-span-full mt-4">
