@@ -138,8 +138,9 @@ export default function NewPlanPage() {
     setTimeout(() => window.history.back(), 300);
   };
 
+  // Inputs oscuros estilo Instagram pero con bordes finos y #BFBFBF
   const inputClasses =
-    "w-full p-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 text-[16px] focus:outline-none focus:ring-2 focus:ring-white shadow-md transition";
+    "w-full p-3 rounded-2xl bg-[#111111] border border-[#BFBFBF]/60 text-white placeholder-gray-400 text-[16px] focus:outline-none focus:ring-1 focus:ring-[#BFBFBF] focus:border-[#BFBFBF] transition";
 
   const today = new Date().toISOString().split("T")[0];
   const nowTime = new Date().toTimeString().slice(0, 5);
@@ -158,11 +159,11 @@ export default function NewPlanPage() {
             onDragEnd={(event, info) => {
               if (info.offset.y > 120) handleCancel();
             }}
-            className="w-full max-w-md bg-white/10 backdrop-blur-md text-white border border-white/20 shadow-2xl rounded-3xl overflow-hidden"
+            className="w-full max-w-md bg-black text-white border border-white/20 shadow-2xl rounded-3xl overflow-hidden"
           >
-            {/* Wrapper interno con scroll para respetar el borde redondeado */}
+            {/* Wrapper interno */}
             <div className="p-6 flex flex-col gap-6 max-h-[calc(90vh-80px)] overflow-y-auto">
-              <div className="w-12 h-1.5 bg-white/30 rounded-full mx-auto mb-2" />
+              <div className="w-12 h-1.5 bg-white rounded-full mx-auto mb-2" />
 
               <h1 className="text-3xl font-bold text-center text-white">Crear Plan</h1>
 
@@ -172,13 +173,13 @@ export default function NewPlanPage() {
                   <button
                     type="button"
                     onClick={() => setEmojiOpen(!emojiOpen)}
-                    className="flex items-center justify-center w-12 h-12 text-2xl rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition"
+                    className="flex items-center justify-center w-12 h-12 text-2xl rounded-full bg-white text-black hover:scale-105 transition"
                   >
                     {emoji}
                   </button>
 
                   {emojiOpen && (
-                    <div className="absolute top-14 left-0 flex flex-nowrap gap-2 p-2 bg-black/80 backdrop-blur-md rounded-xl shadow-lg min-w-[300px] sm:min-w-[360px] max-w-full overflow-x-auto z-50">
+                    <div className="absolute top-14 left-0 flex flex-nowrap gap-2 p-2 bg-black/90 backdrop-blur-md rounded-xl shadow-lg min-w-[300px] sm:min-w-[360px] max-w-full overflow-x-auto z-50">
                       {EMOJIS.map((em) => (
                         <button
                           key={em}
@@ -186,7 +187,7 @@ export default function NewPlanPage() {
                             setEmoji(em);
                             setEmojiOpen(false);
                           }}
-                          className="w-10 h-10 flex items-center justify-center text-xl rounded-full bg-white/20 hover:bg-white/40 transition-transform hover:scale-110 flex-shrink-0"
+                          className="w-10 h-10 flex items-center justify-center text-xl rounded-full bg-white text-black hover:scale-110 transition-transform flex-shrink-0"
                         >
                           {em}
                         </button>
@@ -197,7 +198,7 @@ export default function NewPlanPage() {
 
                 <input
                   className={inputClasses}
-                  placeholder="Título (ej. Cañas en Malasaña)"
+                  placeholder="Título (Copas en Malasaña...)"
                   value={title}
                   onChange={handleTitleChange}
                 />
@@ -225,8 +226,8 @@ export default function NewPlanPage() {
               <div className="flex flex-col gap-2">
                 {lat && lng ? (
                   <>
-                    <p className="text-left text-white/70 text-sm font-medium">{place}</p>
-                    <div className="rounded-xl overflow-hidden h-36 border border-white/20 shadow-sm">
+                    <p className="text-left text-gray-300 text-sm font-medium">{place}</p>
+                    <div className="rounded-xl overflow-hidden h-36 border border-gray-700 shadow-sm">
                       <Map
                         lat={lat}
                         lng={lng}
@@ -238,7 +239,7 @@ export default function NewPlanPage() {
                     </div>
                   </>
                 ) : (
-                  <p className="text-left text-white/50 text-sm">Obteniendo ubicación...</p>
+                  <p className="text-left text-gray-500 text-sm">Obteniendo ubicación...</p>
                 )}
               </div>
 
@@ -250,7 +251,7 @@ export default function NewPlanPage() {
                 onChange={(e) => setHandle(e.target.value)}
               />
 
-              {/* Botones Crear + Cancelar */}
+              {/* Botones */}
               <div className="flex gap-3">
                 <button
                   onClick={createPlan}
@@ -264,7 +265,7 @@ export default function NewPlanPage() {
                 <button
                   onClick={handleCancel}
                   disabled={canceling}
-                  className="py-3 px-4 rounded-2xl font-semibold text-white bg-white/10 transition shadow-md"
+                  className="py-3 px-4 rounded-2xl font-semibold text-white bg-transparent transition shadow-md"
                 >
                   Cancelar
                 </button>

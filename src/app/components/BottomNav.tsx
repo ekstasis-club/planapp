@@ -14,7 +14,7 @@ export default function BottomNav() {
   const isCreating = pathname === centerItem.href;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-zinc-900 z-50 border-t border-zinc-800 h-16">
+    <nav className="fixed bottom-0 left-0 right-0 bg-black/60 backdrop-blur-md z-50 border-t border-zinc-800 h-16">
       <div className="relative flex items-center justify-around px-6 h-full">
         {/* Icono izquierdo */}
         <Link
