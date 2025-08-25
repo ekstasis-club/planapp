@@ -23,7 +23,7 @@ export default function NewPlanPage() {
   const [lng, setLng] = useState<number | null>(null);
   const [place, setPlace] = useState<string>("");
   const [creating, setCreating] = useState(false);
-  const [canceling, setCanceling] = useState(false); // nuevo
+  const [canceling, setCanceling] = useState(false);
 
   useEffect(() => {
     const now = new Date();
@@ -74,11 +74,21 @@ export default function NewPlanPage() {
   const createPlan = async () => {
     if (!title || !time || !date) return alert("Añade título, fecha y hora");
     if (creating) return;
-    setCreating(true);
 
     const [year, month, day] = date.split("-").map(Number);
     const [hours, minutes] = time.split(":").map(Number);
     const dt = new Date(year, month - 1, day, hours, minutes);
+
+    const now = new Date();
+
+    // Validación más precisa
+    if (dt < now) {
+      alert("No se puede crear un evento con fecha u hora anterior a la actual.");
+      return;
+    }
+
+    setCreating(true);
+
     const chatExpiresAt = new Date(dt.getTime() + 12 * 60 * 60 * 1000).toISOString();
 
     try {
@@ -111,7 +121,6 @@ export default function NewPlanPage() {
 
       if (chatError) console.error(chatError);
 
-      // Guardar estado en sessionStorage antes de volver
       const homeState = sessionStorage.getItem("homeState");
       if (homeState) sessionStorage.setItem("homeState", homeState);
 
@@ -122,10 +131,9 @@ export default function NewPlanPage() {
   };
 
   const handleCancel = () => {
-    if (canceling) return; // previene doble click
+    if (canceling) return;
     setCanceling(true);
 
-    // Guardar estado actual antes de volver
     const homeState = sessionStorage.getItem("homeState");
     if (homeState) sessionStorage.setItem("homeState", homeState);
 
@@ -133,7 +141,7 @@ export default function NewPlanPage() {
   };
 
   const inputClasses =
-    "w-full p-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-1 focus:ring-offset-black shadow-md transition";
+    "w-full p-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 text-[16px] focus:outline-none focus:ring-2 focus:ring-white shadow-md transition";
 
   const today = new Date().toISOString().split("T")[0];
   const nowTime = new Date().toTimeString().slice(0, 5);
@@ -232,7 +240,7 @@ export default function NewPlanPage() {
           <button
             onClick={createPlan}
             disabled={creating}
-            className={`flex-1 py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 hover:opacity-90 transition shadow-lg ${
+            className={`flex-1 py-3 rounded-2xl font-bold text-black bg-white hover:bg-gray-200 transition shadow-lg ${
               creating ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
@@ -241,7 +249,7 @@ export default function NewPlanPage() {
           <button
             onClick={handleCancel}
             disabled={canceling}
-            className="py-3 px-4 rounded-2xl font-semibold text-white bg-white/20 backdrop-blur-sm hover:bg-white/30 transition shadow-md"
+            className="py-3 px-4 rounded-2xl font-semibold text-white bg-white/10 transition shadow-md"
           >
             Cancelar
           </button>
