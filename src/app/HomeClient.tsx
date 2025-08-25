@@ -21,58 +21,78 @@ type Plan = {
 export default function HomeClient() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [userCity, setUserCity] = useState<string | null>(null);
   const [denied, setDenied] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [emojiFilter, setEmojiFilter] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<string | null>(null);
-
-  // Controla qué filtro está abierto
+  const [invalidDate, setInvalidDate] = useState(false);
   const [openFilter, setOpenFilter] = useState<"emoji" | "date" | null>(null);
+
   const isEmojiOpen = openFilter === "emoji";
-  const isDateOpen = openFilter === "date";
+  const today = new Date().toISOString().split("T")[0];
 
-  const [userCity, setUserCity] = useState<string | null>(null);
-
-  const requestLocation = () => {
-    if (!navigator.geolocation) {
-      setDenied(true);
-      setLoading(false);
-      return;
+  // Recuperar estado guardado
+  useEffect(() => {
+    const saved = sessionStorage.getItem("homeState");
+    if (saved) {
+      const { emojiFilter, dateFilter, coords } = JSON.parse(saved);
+      setEmojiFilter(emojiFilter);
+      setDateFilter(dateFilter);
+      setCoords(coords);
+    } else {
+      setDateFilter(today);
     }
+  }, []);
 
-    setLoading(true);
-    setDenied(false);
+  // Guardar estado en sessionStorage
+  useEffect(() => {
+    sessionStorage.setItem(
+      "homeState",
+      JSON.stringify({ emojiFilter, dateFilter, coords })
+    );
+  }, [emojiFilter, dateFilter, coords]);
 
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setCoords({ lat, lng });
-
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`
-          );
-          const data = await res.json();
-          setUserCity(data.address.city || data.address.town || data.address.village || null);
-        } catch {
-          setUserCity(null);
-        }
-
-        setLoading(false);
-      },
-      () => {
+  // Solicitar geolocalización
+  useEffect(() => {
+    if (!coords) {
+      if (!navigator.geolocation) {
         setDenied(true);
         setLoading(false);
-      },
-      { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
-    );
-  };
+        return;
+      }
 
+      setLoading(true);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+          setDenied(false);
+          setLoading(false);
+        },
+        () => {
+          setDenied(true);
+          setLoading(false);
+        },
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+      );
+    }
+  }, [coords]);
+
+  // Obtener userCity desde coords
   useEffect(() => {
-    requestLocation();
-  }, []);
+    if (!coords || userCity) return;
+
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${coords.lat}&lon=${coords.lng}&format=json`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        const city = data.address.city || data.address.town || data.address.village || null;
+        setUserCity(city);
+      })
+      .catch(() => setUserCity(null));
+  }, [coords, userCity]);
 
   // Traer planes de Supabase
   useEffect(() => {
@@ -87,54 +107,48 @@ export default function HomeClient() {
         return;
       }
 
-      if (data) {
-        const formatted: Plan[] = data.map((p) => {
-          const d = new Date(p.time_iso);
+      if (!data) return;
 
-          let distance = undefined;
-          if (coords && p.lat && p.lng) {
-            const R = 6371;
-            const dLat = ((p.lat - coords.lat) * Math.PI) / 180;
-            const dLng = ((p.lng - coords.lng) * Math.PI) / 180;
-            const a =
-              Math.sin(dLat / 2) ** 2 +
-              Math.cos((coords.lat * Math.PI) / 180) *
-                Math.cos((p.lat * Math.PI) / 180) *
-                Math.sin(dLng / 2) ** 2;
-            distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          }
+      // Formatear fechas y calcular distancia si coords existen
+      const formatted: Plan[] = data.map((p) => {
+        const d = new Date(p.time_iso);
+        let distance: number | undefined = undefined;
+        if (coords && p.lat && p.lng) {
+          const R = 6371;
+          const dLat = ((p.lat - coords.lat) * Math.PI) / 180;
+          const dLng = ((p.lng - coords.lng) * Math.PI) / 180;
+          const a =
+            Math.sin(dLat / 2) ** 2 +
+            Math.cos((coords.lat * Math.PI) / 180) *
+              Math.cos((p.lat * Math.PI) / 180) *
+              Math.sin(dLng / 2) ** 2;
+          distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
 
-          return {
-            id: p.id,
-            title: p.title,
-            emoji: p.emoji,
-            time_iso: p.time_iso,
-            place: p.place ?? "",
-            lat: p.lat ?? undefined,
-            lng: p.lng ?? undefined,
-            city: p.city ?? null,
-            date: d.toISOString().split("T")[0],
-            time: d.toTimeString().slice(0, 5),
-            distance,
-          };
-        });
+        return {
+          id: p.id,
+          title: p.title,
+          emoji: p.emoji,
+          time_iso: p.time_iso,
+          place: p.place ?? "",
+          lat: p.lat ?? undefined,
+          lng: p.lng ?? undefined,
+          city: p.city ?? null,
+          date: d.toISOString().split("T")[0],
+          time: d.toTimeString().slice(0, 5),
+          distance,
+        };
+      });
 
-        setPlans(formatted);
-      }
+      setPlans(formatted);
     };
 
     fetchPlans();
   }, [coords]);
 
   const allEmojis = Array.from(new Set(plans.map((p) => p.emoji)));
-  const today = new Date().toISOString().split("T")[0];
 
-  // Inicializar filtro de fecha con hoy
-  useEffect(() => {
-    setDateFilter(today);
-  }, []);
-
-  // Cierra filtros si se hace click fuera
+  // Cierra filtros al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -146,87 +160,93 @@ export default function HomeClient() {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  // Filtrado de planes
-  const now = new Date();
-  const filteredPlans = plans
+  const sixHoursAgo = new Date(Date.now() - 6 * 60 * 60 * 1000);
+
+  // Filtrar y ordenar
+  const displayedPlans = plans
     .filter((p) => !emojiFilter || p.emoji === emojiFilter)
     .filter((p) => {
       const planDate = new Date(p.time_iso);
-      const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
-      return planDate > now || planDate >= sixHoursAgo;
+      if (!dateFilter) return planDate >= sixHoursAgo;
+
+      const selectedDate = new Date(dateFilter);
+      if (selectedDate < new Date(today)) {
+        if (!invalidDate) setInvalidDate(true);
+        return planDate >= sixHoursAgo;
+      }
+      if (invalidDate) setInvalidDate(false);
+      if (selectedDate.toISOString().split("T")[0] === today) return planDate >= sixHoursAgo;
+      return planDate >= selectedDate;
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.time_iso);
+      const dateB = new Date(b.time_iso);
+
+      const dayA = dateA.toISOString().split("T")[0];
+      const dayB = dateB.toISOString().split("T")[0];
+
+      const isSameCityA = userCity && a.city === userCity;
+      const isSameCityB = userCity && b.city === userCity;
+
+      if (dayA !== dayB) return dateA.getTime() - dateB.getTime();
+      if (isSameCityA && !isSameCityB) return -1;
+      if (isSameCityB && !isSameCityA) return 1;
+
+      if (isSameCityA && isSameCityB) {
+        if ((a.distance ?? Infinity) !== (b.distance ?? Infinity))
+          return (a.distance ?? Infinity) - (b.distance ?? Infinity);
+        return dateA.getTime() - dateB.getTime();
+      }
+
+      if ((a.distance ?? Infinity) !== (b.distance ?? Infinity))
+        return (a.distance ?? Infinity) - (b.distance ?? Infinity);
+
+      return dateA.getTime() - dateB.getTime();
     });
-
-  // Ordenamiento inteligente
-  const sortedPlans = filteredPlans.sort((a, b) => {
-    const isTodayA = a.date === today;
-    const isTodayB = b.date === today;
-    const isSameCityA = userCity && a.city === userCity;
-    const isSameCityB = userCity && b.city === userCity;
-
-    if (isTodayA && isSameCityA && (!isTodayB || !isSameCityB)) return -1;
-    if (isTodayB && isSameCityB && (!isTodayA || !isSameCityA)) return 1;
-
-    if (isTodayA && isTodayB && isSameCityA && isSameCityB) {
-      return (a.distance ?? Infinity) - (b.distance ?? Infinity);
-    }
-
-    if (isSameCityA && !isSameCityB) return -1;
-    if (isSameCityB && !isSameCityA) return 1;
-    if (isSameCityA && isSameCityB) {
-      return new Date(a.time_iso).getTime() - new Date(b.time_iso).getTime();
-    }
-
-    const dateDiff = new Date(a.time_iso).getTime() - new Date(b.time_iso).getTime();
-    if (dateDiff !== 0) return dateDiff;
-
-    return (a.distance ?? Infinity) - (b.distance ?? Infinity);
-  });
 
   return (
     <div className="min-h-screen bg-black pb-24">
       <main className="p-4 space-y-4 pt-12">
-        {/* --- Filtros Emoji + Fecha --- */}
+        {/* Filtros Emoji + Fecha */}
         <div className="flex gap-2 py-2 px-2 items-center relative z-50 bg-black/50 backdrop-blur-md rounded-xl">
           {/* Emoji Filter */}
           <div id="emoji-filter" className="relative">
             <button
               onClick={() => setOpenFilter(isEmojiOpen ? null : "emoji")}
-              className={`flex-shrink-0 px-3 py-1 text-sm rounded-full font-medium transition bg-white/20 text-white backdrop-blur-md`}
+              className="flex-shrink-0 px-3 py-1 text-sm rounded-full font-medium transition bg-white/20 text-white backdrop-blur-md"
             >
               {emojiFilter ?? "All"} {isEmojiOpen ? "▲" : "▼"}
             </button>
-
             {isEmojiOpen && (
-              <div className="absolute top-full left-0 flex gap-2 mt-2 p-2 bg-black/80 backdrop-blur-md rounded-xl shadow-lg overflow-x-auto whitespace-nowrap z-50 min-w-[300px] sm:min-w-[360px]">
-                {allEmojis.map((em) => (
-                  <button
-                    key={em}
-                    onClick={() => {
-                      setEmojiFilter(em);
-                      setOpenFilter(null);
-                    }}
-                    className="w-10 h-10 flex items-center justify-center text-xl rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/40 transition-transform hover:scale-110 flex-shrink-0"
-                  >
-                    {em}
-                  </button>
-                ))}
-
-                {/* X para cerrar filtro */}
-                {emojiFilter && (
-                  <button
-                    onClick={() => {
-                      setEmojiFilter(null);
-                      setOpenFilter(null);
-                    }}
-                    className="ml-2 w-8 h-8 flex items-center justify-center text-white text-xs rounded-full bg-black hover:bg-gray-800 transition flex-shrink-0"
-                  >
-                    ✕
-                  </button>
-                )}
+              <div className="absolute top-full left-0 mt-2 p-2 bg-black/80 backdrop-blur-md rounded-xl shadow-lg overflow-y-auto overflow-x-hidden z-50 min-w-[300px] sm:min-w-[360px] max-h-40">
+                <div className="flex flex-wrap gap-2">
+                  {allEmojis.map((em) => (
+                    <button
+                      key={em}
+                      onClick={() => {
+                        setEmojiFilter(em);
+                        setOpenFilter(null);
+                      }}
+                      className="w-10 h-10 flex items-center justify-center text-xl rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/40 transition-transform hover:scale-110 flex-shrink-0"
+                    >
+                      {em}
+                    </button>
+                  ))}
+                  {emojiFilter && (
+                    <button
+                      onClick={() => {
+                        setEmojiFilter(null);
+                        setOpenFilter(null);
+                      }}
+                      className="ml-2 w-8 h-8 flex items-center justify-center text-white text-xs rounded-full bg-black hover:bg-gray-800 transition flex-shrink-0"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
-
           {/* Fecha */}
           <div id="date-filter" className="relative w-36 sm:w-40">
             <input
@@ -239,6 +259,13 @@ export default function HomeClient() {
             />
           </div>
         </div>
+
+        {/* Mensaje fecha inválida */}
+        {invalidDate && (
+          <div className="bg-yellow-500/10 border border-yellow-500 rounded-xl p-3 text-center text-yellow-400 text-sm">
+            Fecha inválida. Te mostramos planes populares
+          </div>
+        )}
 
         {/* Loading */}
         {loading && !coords && !denied && (
@@ -267,8 +294,8 @@ export default function HomeClient() {
         {/* Planes */}
         {(coords || denied) && !loading && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {sortedPlans.length > 0 ? (
-              sortedPlans.map((plan) => (
+            {displayedPlans.length > 0 ? (
+              displayedPlans.map((plan) => (
                 <div key={plan.id} className="w-full h-full">
                   <PlanCard {...plan} />
                 </div>

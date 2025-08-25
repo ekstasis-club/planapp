@@ -22,6 +22,8 @@ export default function NewPlanPage() {
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [place, setPlace] = useState<string>("");
+  const [creating, setCreating] = useState(false);
+  const [canceling, setCanceling] = useState(false); // nuevo
 
   useEffect(() => {
     const now = new Date();
@@ -59,49 +61,75 @@ export default function NewPlanPage() {
     });
   }, []);
 
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let value = e.target.value;
+    value = value.replace(
+      /([\u2700-\u27BF]|[\uE000-\uF8FF]|[\uD83C-\uDBFF\uDC00-\uDFFF])/g,
+      ""
+    );
+    if (value.length > 50) value = value.slice(0, 50);
+    setTitle(value);
+  };
+
   const createPlan = async () => {
     if (!title || !time || !date) return alert("Añade título, fecha y hora");
+    if (creating) return;
+    setCreating(true);
 
     const [year, month, day] = date.split("-").map(Number);
     const [hours, minutes] = time.split(":").map(Number);
     const dt = new Date(year, month - 1, day, hours, minutes);
-
     const chatExpiresAt = new Date(dt.getTime() + 12 * 60 * 60 * 1000).toISOString();
 
-    const { data, error } = await supabase
-      .from("plans")
-      .insert([
-        {
-          title,
-          emoji: emoji || undefined,
-          time_iso: dt.toISOString(),
-          place: place || undefined,
-          lat,
-          lng,
-          chat_expires_at: chatExpiresAt || undefined
-        }
-      ])
-      .select();
+    try {
+      const { data, error } = await supabase
+        .from("plans")
+        .insert([
+          {
+            title,
+            emoji: emoji || undefined,
+            time_iso: dt.toISOString(),
+            place: place || undefined,
+            lat,
+            lng,
+            chat_expires_at: chatExpiresAt || undefined
+          }
+        ])
+        .select();
 
-    if (error) {
-      console.error(error);
-      return alert("Error creando el plan");
+      if (error || !data || data.length === 0) {
+        console.error(error);
+        alert("Error creando el plan");
+        return;
+      }
+
+      const planId = data[0].id;
+
+      const { error: chatError } = await supabase
+        .from("chats")
+        .insert([{ plan_id: planId, expires_at: chatExpiresAt }]);
+
+      if (chatError) console.error(chatError);
+
+      // Guardar estado en sessionStorage antes de volver
+      const homeState = sessionStorage.getItem("homeState");
+      if (homeState) sessionStorage.setItem("homeState", homeState);
+
+      window.location.href = `/plan/${planId}`;
+    } finally {
+      setCreating(false);
     }
+  };
 
-    if (!data || data.length === 0) return alert("Error creando el plan");
+  const handleCancel = () => {
+    if (canceling) return; // previene doble click
+    setCanceling(true);
 
-    const planId = data[0].id;
+    // Guardar estado actual antes de volver
+    const homeState = sessionStorage.getItem("homeState");
+    if (homeState) sessionStorage.setItem("homeState", homeState);
 
-    const { error: chatError } = await supabase
-      .from("chats")
-      .insert([{ plan_id: planId, expires_at: chatExpiresAt }]);
-
-    if (chatError) {
-      console.error(chatError);
-      alert("Plan creado, pero no se pudo crear el chat");
-    }
-
-    window.location.href = `/plan/${planId}`;
+    window.history.back();
   };
 
   const inputClasses =
@@ -117,40 +145,38 @@ export default function NewPlanPage() {
 
         {/* Emoji + título */}
         <div className="flex gap-3 items-center relative">
-        <div id="emoji-selector" className="relative">
-  <button
-    type="button"
-    onClick={() => setEmojiOpen(!emojiOpen)}
-    className="flex items-center justify-center w-12 h-12 text-2xl rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition"
-  >
-    {emoji}
-  </button>
+          <div id="emoji-selector" className="relative">
+            <button
+              type="button"
+              onClick={() => setEmojiOpen(!emojiOpen)}
+              className="flex items-center justify-center w-12 h-12 text-2xl rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition"
+            >
+              {emoji}
+            </button>
 
-  {emojiOpen && (
-    <div className="absolute top-14 left-0 flex flex-nowrap gap-2 p-2 bg-black/80 backdrop-blur-md rounded-xl shadow-lg min-w-[300px] sm:min-w-[360px] max-w-full overflow-x-auto z-50">
-      {EMOJIS.map((em) => (
-        <button
-          key={em}
-          onClick={() => {
-            setEmoji(em);
-            setEmojiOpen(false);
-          }}
-          className="w-10 h-10 flex items-center justify-center text-xl rounded-full bg-white/20 hover:bg-white/40 transition-transform hover:scale-110 flex-shrink-0"
-        >
-          {em}
-        </button>
-      ))}
-    </div>
-  )}
-</div>
-
-
+            {emojiOpen && (
+              <div className="absolute top-14 left-0 flex flex-nowrap gap-2 p-2 bg-black/80 backdrop-blur-md rounded-xl shadow-lg min-w-[300px] sm:min-w-[360px] max-w-full overflow-x-auto z-50">
+                {EMOJIS.map((em) => (
+                  <button
+                    key={em}
+                    onClick={() => {
+                      setEmoji(em);
+                      setEmojiOpen(false);
+                    }}
+                    className="w-10 h-10 flex items-center justify-center text-xl rounded-full bg-white/20 hover:bg-white/40 transition-transform hover:scale-110 flex-shrink-0"
+                  >
+                    {em}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           <input
             className={inputClasses}
             placeholder="Título (ej. Cañas en Malasaña)"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={handleTitleChange}
           />
         </div>
 
@@ -205,12 +231,16 @@ export default function NewPlanPage() {
         <div className="flex gap-3">
           <button
             onClick={createPlan}
-            className="flex-1 py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 hover:opacity-90 transition shadow-lg"
+            disabled={creating}
+            className={`flex-1 py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 hover:opacity-90 transition shadow-lg ${
+              creating ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
-            Crear 🚀
+            {creating ? "Creando..." : "Crear 🚀"}
           </button>
           <button
-            onClick={() => window.history.back()}
+            onClick={handleCancel}
+            disabled={canceling}
             className="py-3 px-4 rounded-2xl font-semibold text-white bg-white/20 backdrop-blur-sm hover:bg-white/30 transition shadow-md"
           >
             Cancelar
