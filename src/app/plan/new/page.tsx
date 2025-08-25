@@ -105,43 +105,46 @@ export default function NewPlanPage() {
   };
 
   const inputClasses =
-    "w-full p-3 rounded-xl bg-gray-200 text-gray-800 focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm placeholder:text-gray-500";
+    "w-full p-3 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/50 text-sm focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-1 focus:ring-offset-black shadow-md transition";
+
   const today = new Date().toISOString().split("T")[0];
   const nowTime = new Date().toTimeString().slice(0, 5);
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center px-4 py-8">
-      <div className="bg-white rounded-3xl shadow-xl p-6 w-full max-w-md flex flex-col gap-4 border border-gray-300">
-        <h1 className="text-2xl font-bold text-center text-gray-800">Crear Plan</h1>
+    <div className="fixed inset-0 bg-gradient-to-b from-black via-zinc-900 to-black flex items-center justify-center overflow-hidden p-4">
+      <div className="bg-white/10 backdrop-blur-md text-white rounded-3xl shadow-2xl p-6 w-full max-w-md flex flex-col gap-6 border border-white/20 overflow-auto max-h-[90vh]">
+        <h1 className="text-3xl font-bold text-center text-white">Crear Plan</h1>
 
         {/* Emoji + título */}
-        <div className="flex gap-2 items-center relative">
-          <div className="relative">
-            <button
-              type="button"
-              className="w-12 h-12 text-2xl flex items-center justify-center bg-gray-300 text-gray-800 rounded-xl hover:ring-2 hover:ring-purple-500 transition"
-              onClick={() => setEmojiOpen(!emojiOpen)}
-            >
-              {emoji}
-            </button>
+        <div className="flex gap-3 items-center relative">
+        <div id="emoji-selector" className="relative">
+  <button
+    type="button"
+    onClick={() => setEmojiOpen(!emojiOpen)}
+    className="flex items-center justify-center w-12 h-12 text-2xl rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition"
+  >
+    {emoji}
+  </button>
 
-            {emojiOpen && (
-              <div className="absolute top-14 left-0 bg-gray-200 shadow-lg rounded-xl p-2 flex gap-2 overflow-x-auto z-50 max-w-xs">
-                {EMOJIS.map((em) => (
-                  <button
-                    key={em}
-                    onClick={() => {
-                      setEmoji(em);
-                      setEmojiOpen(false);
-                    }}
-                    className={`text-2xl p-1 rounded-xl hover:scale-125 transition-transform ${emoji === em ? "bg-purple-200" : ""}`}
-                  >
-                    {em}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+  {emojiOpen && (
+    <div className="absolute top-14 left-0 flex flex-nowrap gap-2 p-2 bg-black/80 backdrop-blur-md rounded-xl shadow-lg min-w-[300px] sm:min-w-[360px] max-w-full overflow-x-auto z-50">
+      {EMOJIS.map((em) => (
+        <button
+          key={em}
+          onClick={() => {
+            setEmoji(em);
+            setEmojiOpen(false);
+          }}
+          className="w-10 h-10 flex items-center justify-center text-xl rounded-full bg-white/20 hover:bg-white/40 transition-transform hover:scale-110 flex-shrink-0"
+        >
+          {em}
+        </button>
+      ))}
+    </div>
+  )}
+</div>
+
+
 
           <input
             className={inputClasses}
@@ -152,7 +155,7 @@ export default function NewPlanPage() {
         </div>
 
         {/* Fecha + hora */}
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <input
             type="date"
             className={inputClasses}
@@ -173,8 +176,8 @@ export default function NewPlanPage() {
         <div className="flex flex-col gap-2">
           {lat && lng ? (
             <>
-              <p className="text-left text-gray-700 text-sm font-medium">{place}</p>
-              <div className="rounded-xl overflow-hidden h-32 border border-gray-300">
+              <p className="text-left text-white/70 text-sm font-medium">{place}</p>
+              <div className="rounded-xl overflow-hidden h-36 border border-white/20 shadow-sm">
                 <Map
                   lat={lat}
                   lng={lng}
@@ -186,7 +189,7 @@ export default function NewPlanPage() {
               </div>
             </>
           ) : (
-            <p className="text-left text-gray-700 text-sm">Obteniendo ubicación...</p>
+            <p className="text-left text-white/50 text-sm">Obteniendo ubicación...</p>
           )}
         </div>
 
@@ -199,7 +202,7 @@ export default function NewPlanPage() {
         />
 
         {/* Botones Crear + Cancelar */}
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={createPlan}
             className="flex-1 py-3 rounded-2xl font-bold text-white bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 hover:opacity-90 transition shadow-lg"
@@ -208,7 +211,7 @@ export default function NewPlanPage() {
           </button>
           <button
             onClick={() => window.history.back()}
-            className="py-3 px-4 rounded-2xl font-semibold text-white bg-gray-500 hover:bg-gray-400 transition text-sm"
+            className="py-3 px-4 rounded-2xl font-semibold text-white bg-white/20 backdrop-blur-sm hover:bg-white/30 transition shadow-md"
           >
             Cancelar
           </button>
