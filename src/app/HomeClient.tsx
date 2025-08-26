@@ -38,6 +38,7 @@ export default function HomeClient() {
   const [userCity, setUserCity] = useState<string | null>(null);
   const [denied, setDenied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [plansLoading, setPlansLoading] = useState(true);
 
   const [emojiFilter, setEmojiFilter] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<string | null>(null);
@@ -48,7 +49,7 @@ export default function HomeClient() {
 
   // Recuperar estado guardado
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0]; // moved inside
+    const today = new Date().toISOString().split("T")[0];
     const saved = sessionStorage.getItem("homeState");
     if (saved) {
       const { emojiFilter, dateFilter, coords } = JSON.parse(saved);
@@ -108,57 +109,47 @@ export default function HomeClient() {
   }, [coords, userCity]);
 
   // Traer planes y número de asistentes
-  useEffect(() => {
-    const fetchPlans = async () => {
-      const { data, error } = await supabase
-        .from("plans")
-        .select(`
-          *,
-          attendees:attendees(count)
-        `)
-        .order("time_iso", { ascending: true });
+useEffect(() => {
+  if (!coords) return;
+  const fetchPlans = async () => {
+    setPlansLoading(true);
 
-      if (error) {
-        console.error("Error fetching plans:", error);
-        return;
-      }
-      if (!data) return;
-      const formatted: Plan[] = (data as SupabasePlan[]).map((p) => {
-        const d = new Date(p.time_iso);
-        let distance: number | undefined = undefined;
-        if (coords && p.lat && p.lng) {
-          const R = 6371;
-          const dLat = ((p.lat - coords.lat) * Math.PI) / 180;
-          const dLng = ((p.lng - coords.lng) * Math.PI) / 180;
-          const a =
-            Math.sin(dLat / 2) ** 2 +
-            Math.cos((coords.lat * Math.PI) / 180) *
-              Math.cos((p.lat * Math.PI) / 180) *
-              Math.sin(dLng / 2) ** 2;
-          distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        }
+    const { data, error } = await supabase
+      .from("plans")
+      .select(`*, attendees:attendees(count)`)
+      .order("time_iso", { ascending: true });
 
-        return {
-          id: p.id,
-          title: p.title,
-          emoji: p.emoji,
-          time_iso: p.time_iso,
-          place: p.place ?? "",
-          lat: p.lat ?? undefined,
-          lng: p.lng ?? undefined,
-          city: p.city ?? null,
-          date: d.toISOString().split("T")[0],
-          time: d.toTimeString().slice(0, 5),
-          distance,
-          attendees: p.attendees?.length ?? 0,
-        };
-      });
+    if (error) {
+      console.error(error);
+      setPlansLoading(false);
+      return;
+    }
 
-      setPlans(formatted);
-    };
+    const formatted: Plan[] = (data as SupabasePlan[]).map((p) => {
+      const d = new Date(p.time_iso);
+      return {
+        id: p.id,
+        title: p.title,
+        emoji: p.emoji,
+        time_iso: p.time_iso,
+        place: p.place ?? "",
+        lat: p.lat ?? undefined,
+        lng: p.lng ?? undefined,
+        city: p.city ?? null,
+        date: d.toISOString().split("T")[0],
+        time: d.toTimeString().slice(0, 5),
+        distance: undefined,
+        attendees: p.attendees?.length ?? 0,
+      };
+    });
 
-    fetchPlans();
-  }, [coords]);
+    setPlans(formatted);
+    setPlansLoading(false);
+  };
+
+  fetchPlans();
+}, [coords]);
+
 
   const allEmojis = Array.from(new Set(plans.map((p) => p.emoji)));
 
@@ -279,11 +270,23 @@ export default function HomeClient() {
           </div>
         )}
 
-        {loading && !coords && !denied && (
-          <div className="flex items-center justify-center p-6">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
-          </div>
-        )}
+{(loading || plansLoading) && !denied && (
+  <div className="flex items-center justify-center p-6">
+    <div className="animate-spin rounded-full h-8 w-8 border-4 border-white border-t-transparent"></div>
+  </div>
+)}
+
+{!loading && !plansLoading && (coords || denied) && (
+  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+    {displayedPlans.length > 0 ? (
+      displayedPlans.map((plan) => <PlanCard key={plan.id} {...plan} />)
+    ) : (
+      <p className="text-gray-400 text-center col-span-full mt-4">
+        No hay planes todavia 😕
+      </p>
+    )}
+  </div>
+)}
 
         {denied && !loading && (
           <div className="bg-zinc-900 border border-red-500 rounded-xl p-4 shadow-md mb-6 text-center flex flex-col items-center">
@@ -296,24 +299,11 @@ export default function HomeClient() {
             <p className="text-xs text-gray-400 mt-1">
               Te mostramos algunos{" "}
               <span className="font-medium text-red-400">planes populares</span>{" "}
-              cerca de ti.
+              .
             </p>
           </div>
         )}
 
-        {(coords || denied) && !loading && (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-            {displayedPlans.length > 0 ? (
-              displayedPlans.map((plan) => (
-                <PlanCard key={plan.id} {...plan} />
-              ))
-            ) : (
-              <p className="text-gray-400 text-center col-span-full mt-4">
-                No hay planes 😕
-              </p>
-            )}
-          </div>
-        )}
       </main>
     </div>
   );
