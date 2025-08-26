@@ -138,10 +138,9 @@ export default function NewPlanPage() {
     setTimeout(() => window.history.back(), 300);
   };
 
-  // Inputs oscuros estilo Instagram pero con bordes finos y #BFBFBF
   const inputClasses =
-    "w-full p-3 rounded-2xl bg-[#111111] border border-[#BFBFBF]/60 text-white placeholder-gray-400 text-[16px] focus:outline-none focus:ring-1 focus:ring-[#BFBFBF] focus:border-[#BFBFBF] transition";
-
+  "w-full p-3 rounded-2xl bg-[#111111] border border-white/30 text-white placeholder-white/40 text-[16px] focus:outline-none focus:ring-[0.5px] focus:ring-white focus:border-white transition";
+  
   const today = new Date().toISOString().split("T")[0];
   const nowTime = new Date().toTimeString().slice(0, 5);
 
@@ -170,35 +169,42 @@ export default function NewPlanPage() {
               {/* Emoji + título */}
               <div className="flex gap-3 items-center relative">
                 <div id="emoji-selector" className="relative">
+                  {/* Botón emoji principal */}
                   <button
-                    type="button"
-                    onClick={() => setEmojiOpen(!emojiOpen)}
-                    className="flex items-center justify-center w-12 h-12 text-2xl rounded-full bg-white text-black hover:scale-105 transition"
-                  >
-                    {emoji}
-                  </button>
+  type="button"
+  onClick={() => setEmojiOpen(!emojiOpen)}
+  className="flex items-center justify-center w-12 h-12 text-2xl rounded-full 
+             bg-black text-white border border-white/40 
+             focus:outline-none focus:ring-1 focus:ring-white 
+             hover:scale-105 hover:shadow-[0_0_6px_rgba(255,255,255,0.6)] transition"
+>
+  {emoji}
+</button>
 
-                  {emojiOpen && (
-                    <div className="absolute top-14 left-0 flex flex-nowrap gap-2 p-2 bg-black/90 backdrop-blur-md rounded-xl shadow-lg min-w-[300px] sm:min-w-[360px] max-w-full overflow-x-auto z-50">
-                      {EMOJIS.map((em) => (
-                        <button
-                          key={em}
-                          onClick={() => {
-                            setEmoji(em);
-                            setEmojiOpen(false);
-                          }}
-                          className="w-10 h-10 flex items-center justify-center text-xl rounded-full bg-white text-black hover:scale-110 transition-transform flex-shrink-0"
-                        >
-                          {em}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+
+{/* Selector de emojis */}
+{emojiOpen && (
+  <div className="absolute top-14 left-0 flex flex-nowrap gap-2 p-2 bg-black/90 backdrop-blur-md rounded-xl shadow-lg min-w-[300px] sm:min-w-[360px] max-w-full overflow-x-auto z-50">
+    {EMOJIS.map((em) => (
+     <button
+     type="button"
+     onClick={() => setEmojiOpen(!emojiOpen)}
+     className="flex items-center justify-center w-12 h-12 text-2xl rounded-full 
+                bg-black text-white border border-white/30 
+                focus:outline-none focus:ring-[0.5px] focus:ring-white 
+                hover:scale-105 hover:shadow-[0_0_4px_rgba(255,255,255,0.5)] transition"
+   >
+     {emoji}
+   </button>
+    ))}
+  </div>
+)}
+
                 </div>
 
                 <input
                   className={inputClasses}
-                  placeholder="Título (Copas en Malasaña...)"
+                  placeholder="Título (Copas en Malasaña)"
                   value={title}
                   onChange={handleTitleChange}
                 />
@@ -260,7 +266,7 @@ export default function NewPlanPage() {
                     creating ? "opacity-50 cursor-not-allowed" : ""
                   }`}
                 >
-                  {creating ? "Creando..." : "Crear 🚀"}
+                  {creating ? "Creando..." : "Crear"}
                 </button>
                 <button
                   onClick={handleCancel}

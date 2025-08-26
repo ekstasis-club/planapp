@@ -2,4 +2,16 @@
 @import "leaflet/dist/leaflet.css";
 
 /* Suaviza zoom de texto en iOS */
-html { -webkit-text-size-adjust: 100%; }
+html { 
+  -webkit-text-size-adjust: 100%; 
+}
+
+/* Fuente estilo Instagram */
+:root {
+  --font-instagram: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+html, body {
+  font-family: var(--font-instagram);
+}
