@@ -5,13 +5,13 @@ import TopNav from "./components/TopNav";
 import type { ReactNode } from "react";
 
 export const metadata = {
-  title: "PlanApp",
-  description: "Crea y comparte planes cerca de ti",
+  title: "Hangr",
+  description: "Real Plans, Real Friends",
   themeColor: "#000000", // negro
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent", // o "black"
-    title: "PlanApp",
+    title: "Hangr",
   },
   icons: {
     icon: "/icon-192.png",

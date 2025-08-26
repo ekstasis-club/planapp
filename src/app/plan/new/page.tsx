@@ -5,7 +5,6 @@ import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
 import { PanInfo } from "framer-motion";
 
-
 const Map = dynamic(() => import("./Map"), { ssr: false });
 
 const EMOJIS = ["🎉","🍻","🎬","🎮","🏖️","🏃‍♂️","🍕","☕","🎵","📸","🛶","🏔️"];
@@ -70,7 +69,6 @@ export default function NewPlanPage() {
     setTitle(value);
   };
 
-  /** CREAR PLAN */
   const createPlan = async () => {
     if (!title || !time || !date) return alert("Añade título, fecha y hora");
     if (creating) return;
@@ -123,7 +121,6 @@ export default function NewPlanPage() {
     }
   };
 
-  /** CANCELAR */
   const handleCancel = () => {
     if (canceling) return;
     setCanceling(true);
@@ -132,8 +129,8 @@ export default function NewPlanPage() {
   };
 
   const inputClasses =
-  "w-full px-4 py-3 rounded-2xl bg-black/80 border border-white/20 text-white placeholder-white/40 text-[15px] " +
-  "focus:outline-none focus:scale-105 focus:shadow-[0_0_10px_rgba(255,255,255,0.6)] transition duration-200";
+    "w-full px-4 py-3 rounded-2xl bg-black/80 border border-white/20 text-white placeholder-white/40 text-[16px] " +
+    "focus:outline-none focus:scale-105 focus:shadow-[0_0_10px_rgba(255,255,255,0.6)] transition duration-200";
 
   const today = new Date().toISOString().split("T")[0];
   const nowTime = new Date().toTimeString().slice(0, 5);
@@ -159,42 +156,39 @@ export default function NewPlanPage() {
               <h1 className="text-2xl font-extrabold text-center">Crear Plan</h1>
 
               {/* Emoji + título */}
-<div className="relative flex gap-3 items-center">
-  {/* Botón trigger */}
-  <button
-    type="button"
-    onClick={() => setEmojiOpen(!emojiOpen)}
-    className="flex items-center justify-center w-12 h-12 text-2xl rounded-full bg-black text-white border border-white/30 hover:scale-105 hover:shadow-[0_0_10px_rgba(255,255,255,0.6)] transition"
-  >
-    {emoji}
-  </button>
+              <div className="relative flex gap-3 items-center">
+                <button
+                  type="button"
+                  onClick={() => setEmojiOpen(!emojiOpen)}
+                  className="flex items-center justify-center w-12 h-12 text-2xl rounded-full bg-black text-white border border-white/30 hover:scale-105 hover:shadow-[0_0_10px_rgba(255,255,255,0.6)] transition"
+                >
+                  {emoji}
+                </button>
 
-  {/* Input título */}
-  <input
-    className={inputClasses}
-    placeholder="Título (Copas en Malasaña)"
-    value={title}
-    onChange={handleTitleChange}
-  />
+                <input
+                  className={inputClasses}
+                  placeholder="Título (Copas en Malasaña)"
+                  value={title}
+                  onChange={handleTitleChange}
+                />
 
-  {/* Dropdown: ocupa toda la línea */}
-  {emojiOpen && (
-    <div className="absolute left-0 right-0 top-full mt-2 bg-black/90 backdrop-blur-md rounded-xl border border-white/15 shadow-2xl z-50">
-      <div className="flex flex-nowrap gap-2 overflow-x-auto p-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent touch-pan-x overscroll-contain">
-        {EMOJIS.map((em) => (
-          <button
-            key={em}
-            type="button"
-            onClick={() => { setEmoji(em); setEmojiOpen(false); }}
-            className="flex items-center justify-center w-12 aspect-square text-2xl rounded-full bg-black text-white border border-white/20 hover:scale-105 hover:shadow-[0_0_6px_rgba(255,255,255,0.4)] transition shrink-0"
-          >
-            {em}
-          </button>
-        ))}
-      </div>
-    </div>
-  )}
-</div>
+                {emojiOpen && (
+                  <div className="absolute left-0 right-0 top-full mt-2 bg-black/90 backdrop-blur-md rounded-xl border border-white/15 shadow-2xl z-50">
+                    <div className="flex flex-nowrap gap-2 overflow-x-auto p-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent touch-pan-x overscroll-contain">
+                      {EMOJIS.map((em) => (
+                        <button
+                          key={em}
+                          type="button"
+                          onClick={() => { setEmoji(em); setEmojiOpen(false); }}
+                          className="flex items-center justify-center w-12 aspect-square text-2xl rounded-full bg-black text-white border border-white/20 hover:scale-105 hover:shadow-[0_0_6px_rgba(255,255,255,0.4)] transition shrink-0"
+                        >
+                          {em}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Fecha + hora */}
               <div className="flex gap-3">
@@ -231,10 +225,8 @@ export default function NewPlanPage() {
                       <Map
                         lat={lat}
                         lng={lng}
-                        
                         setLat={setLat}
                         setLng={setLng}
-                        
                       />
                     </div>
                   </>
