@@ -181,24 +181,28 @@ export default function NewPlanPage() {
   {emoji}
 </button>
 
-
 {/* Selector de emojis */}
 {emojiOpen && (
   <div className="absolute top-14 left-0 flex flex-nowrap gap-2 p-2 bg-black/90 backdrop-blur-md rounded-xl shadow-lg min-w-[300px] sm:min-w-[360px] max-w-full overflow-x-auto z-50">
     {EMOJIS.map((em) => (
-     <button
-     type="button"
-     onClick={() => setEmojiOpen(!emojiOpen)}
-     className="flex items-center justify-center w-12 h-12 text-2xl rounded-full 
-                bg-black text-white border border-white/30 
-                focus:outline-none focus:ring-[0.5px] focus:ring-white 
-                hover:scale-105 hover:shadow-[0_0_4px_rgba(255,255,255,0.5)] transition"
-   >
-     {emoji}
-   </button>
+      <button
+        key={em}
+        type="button"
+        onClick={() => {
+          setEmoji(em);       // Cambia el emoji principal
+          setEmojiOpen(false); // Cierra el dropdown
+        }}
+        className="flex items-center justify-center w-12 h-12 text-2xl rounded-full 
+                   bg-black text-white border border-white/30 
+                   focus:outline-none focus:ring-[0.5px] focus:ring-white 
+                   hover:scale-105 hover:shadow-[0_0_4px_rgba(255,255,255,0.5)] transition"
+      >
+        {em}
+      </button>
     ))}
   </div>
 )}
+
 
                 </div>
 
