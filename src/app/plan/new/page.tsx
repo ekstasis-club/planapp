@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
+import { PanInfo } from "framer-motion";
+
 
 const Map = dynamic(() => import("./Map"), { ssr: false });
 
@@ -130,7 +132,8 @@ export default function NewPlanPage() {
   };
 
   const inputClasses =
-    "w-full px-4 py-3 rounded-2xl bg-black/80 border border-white/20 text-white placeholder-white/40 text-[15px] focus:outline-none focus:ring-1 focus:ring-white focus:border-white transition duration-200";
+  "w-full px-4 py-3 rounded-2xl bg-black/80 border border-white/20 text-white placeholder-white/40 text-[15px] " +
+  "focus:outline-none focus:scale-105 focus:shadow-[0_0_10px_rgba(255,255,255,0.6)] transition duration-200";
 
   const today = new Date().toISOString().split("T")[0];
   const nowTime = new Date().toTimeString().slice(0, 5);
@@ -146,7 +149,7 @@ export default function NewPlanPage() {
             transition={{ type: "spring", stiffness: 280, damping: 30 }}
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
-            onDragEnd={(event, info) => {
+            onDragEnd={(_, info: PanInfo) => {
               if (info.offset.y > 120) handleCancel();
             }}
             className="w-full max-w-md bg-gradient-to-b from-black/90 to-black/95 text-white border border-white/10 shadow-2xl rounded-3xl overflow-hidden backdrop-blur-md"
@@ -211,6 +214,14 @@ export default function NewPlanPage() {
                 />
               </div>
 
+              {/* Descripcion */}
+              <input
+                className={inputClasses}
+                placeholder="Descripcion (opcional)"
+                value={handle}
+                onChange={(e) => setHandle(e.target.value)}
+              />
+
               {/* Ubicación */}
               <div className="flex flex-col gap-2">
                 {lat && lng ? (
@@ -220,10 +231,10 @@ export default function NewPlanPage() {
                       <Map
                         lat={lat}
                         lng={lng}
-                        place={place}
+                        
                         setLat={setLat}
                         setLng={setLng}
-                        setPlace={setPlace}
+                        
                       />
                     </div>
                   </>
@@ -231,14 +242,6 @@ export default function NewPlanPage() {
                   <p className="text-left text-gray-500 text-sm">Obteniendo ubicación...</p>
                 )}
               </div>
-
-              {/* Instagram */}
-              <input
-                className={inputClasses}
-                placeholder="Tu @instagram (opcional)"
-                value={handle}
-                onChange={(e) => setHandle(e.target.value)}
-              />
 
               {/* Botones */}
               <div className="flex gap-3">

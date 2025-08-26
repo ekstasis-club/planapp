@@ -26,7 +26,7 @@ export default function PlanPage() {
   const [attendees, setAttendees] = useState<string[]>([]);
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
-  const [place, setPlace] = useState<string>("");
+  //const [place, setPlace] = useState<string>("");
   const [showPopup, setShowPopup] = useState(false);
 
   // Imagen para compartir (full) y preview pequeña
@@ -55,7 +55,7 @@ export default function PlanPage() {
         setPlan(data);
         setLat(data.lat);
         setLng(data.lng);
-        setPlace(data.place || "");
+        //setPlace(data.place || "");
       }
     };
 
@@ -229,10 +229,10 @@ export default function PlanPage() {
               <Map
                 lat={lat}
                 lng={lng}
-                place={place}
+                
                 setLat={() => {}}
                 setLng={() => {}}
-                setPlace={() => {}}
+                
                 draggable={false}
               />
             </div>
