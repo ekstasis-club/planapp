@@ -76,6 +76,7 @@ export default function PlanPage() {
     return d.toLocaleString([], { dateStyle: "full", timeStyle: "short" });
   }, [plan]);
 
+  // Generación de la imagen para compartir
   useEffect(() => {
     if (!showPopup || !plan) return;
 
@@ -160,7 +161,7 @@ export default function PlanPage() {
           url: window.location.href,
         });
         return;
-      }      
+      }
 
       const a = document.createElement("a");
       a.href = storyDataUrl;
@@ -199,19 +200,31 @@ export default function PlanPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-black flex flex-col items-center gap-6 p-4 pb-28 pt-20">
-        <div className="w-full max-w-md bg-white/10 backdrop-blur-xl rounded-3xl shadow-xl border border-white/10 p-6 flex flex-col items-center gap-4 animate-fadeIn">
-          <div className="text-6xl drop-shadow-sm">{plan.emoji ?? "✨"}</div>
+      <div className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-black flex flex-col items-center gap-6 p-6 pb-28 pt-20">
+        {/* Card principal */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full max-w-md bg-white/10 backdrop-blur-xl rounded-2xl shadow-lg border border-white/15 p-6 flex flex-col items-center gap-4"
+        >
+          <div className="text-6xl">{plan.emoji ?? "✨"}</div>
           <h1 className="text-3xl font-bold text-white text-center leading-snug">
             {plan.title ?? ""}
           </h1>
           <p className="text-white/70 text-sm text-center font-medium">
-            {timeText} {plan.place ? ` · ${plan.place}` : ""}
+            {timeText} {plan.place ? `· ${plan.place}` : ""}
           </p>
-        </div>
+        </motion.div>
 
+        {/* Mapa */}
         {lat && lng && (
-          <div className="w-full max-w-md rounded-3xl overflow-hidden shadow-lg border border-white/10 animate-fadeIn">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.3 }}
+            className="w-full max-w-md rounded-2xl overflow-hidden shadow-lg border border-white/15"
+          >
             <div className="h-[220px] w-full">
               <Map
                 lat={lat}
@@ -223,38 +236,41 @@ export default function PlanPage() {
                 draggable={false}
               />
             </div>
-          </div>
+          </motion.div>
         )}
 
-        <div className="w-full max-w-md flex flex-col gap-3 animate-fadeIn">
+        {/* Botón unirse */}
+        <div className="w-full max-w-md">
           <button
             onClick={join}
-            className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 shadow-lg hover:scale-[1.02] active:scale-95 transition-transform"
+            className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 shadow-lg hover:scale-[1.02] active:scale-95 transition"
           >
             Apuntarme 🚀
           </button>
         </div>
 
-        <section className="w-full max-w-md animate-fadeIn">
+        {/* Lista asistentes */}
+        <section className="w-full max-w-md">
           <h2 className="font-semibold mb-3 text-white text-lg">
             Asistentes ({attendees.length})
           </h2>
-          <ul className="bg-white/5 border border-white/10 rounded-3xl shadow-inner divide-y divide-white/10">
+          <div className="flex flex-wrap gap-2">
             {attendees.map((h, i) => (
-              <li
+              <div
                 key={i}
-                className="p-3 flex items-center gap-3 text-white/90 hover:bg-white/10 transition"
+                className="flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-4 py-2 shadow-sm"
               >
-                <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-500 via-pink-500 to-yellow-400 flex items-center justify-center font-bold text-white shadow-md">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 flex items-center justify-center text-sm font-bold text-white">
                   {h[0].toUpperCase()}
                 </div>
-                <span className="text-sm font-medium">{h}</span>
-              </li>
+                <span className="text-sm text-white">{h}</span>
+              </div>
             ))}
-          </ul>
+          </div>
         </section>
       </div>
 
+      {/* Popup de compartir */}
       <AnimatePresence>
         {showPopup && (
           <motion.div
@@ -268,7 +284,7 @@ export default function PlanPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ type: "spring", stiffness: 260, damping: 20 }}
-              className="bg-black rounded-3xl border border-white/10 p-6 max-w-sm w-full shadow-2xl flex flex-col items-center gap-3 text-center"
+              className="bg-black/80 rounded-2xl border border-white/10 p-6 max-w-sm w-full shadow-2xl flex flex-col items-center gap-4 text-center"
             >
               <canvas ref={canvasRef} className="hidden" />
 
@@ -276,40 +292,50 @@ export default function PlanPage() {
                 <span className="text-3xl">{plan.emoji ?? "✨"}</span>
                 <h2 className="text-xl font-bold text-white">{plan.title ?? ""}</h2>
               </div>
+              
+{/* Texto con link en vez de fecha/hora */}
+<a
+  href={typeof window !== "undefined" ? window.location.href : ""}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="text-white/70 text-sm break-all underline hover:text-white"
+>
+  {typeof window !== "undefined" ? window.location.href : ""}
+</a>
 
-              <p className="text-white/70 text-sm">{timeText ?? ""}</p>
+{preview && (
+  <Image
+    src={preview}
+    alt="Previsualización historia"
+    width={150}
+    height={Math.round((1920 / 1080) * 150)}
+    className="rounded-lg shadow-md border border-white/20"
+  />
+)}
 
-              {preview && (
-                <Image
-                  src={preview}
-                  alt="Previsualización historia"
-                  width={150}
-                  height={Math.round((1920 / 1080) * 150)}
-                  className="rounded-lg shadow-lg border-2 border-white"
-                />
-              )}
+{/* Botón copiar enlace modificado */}
+<button
+  onClick={handleCopyLink}
+  className="px-6 py-3 rounded-xl font-semibold bg-white/90 text-black shadow hover:bg-white transition mx-auto"
+>
+  Copiar enlace 🔗
+</button>
 
-              <button
-                onClick={handleCopyLink}
-                className="mt-1 px-6 py-3 rounded-2xl font-semibold bg-gray-200 text-black shadow-lg hover:bg-gray-300 transition w-full"
-              >
-                Copiar enlace 🔗
-              </button>
+<button
+  onClick={handleShare}
+  className="w-full px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 text-white shadow-lg hover:scale-[1.02] active:scale-95 transition"
+  disabled={!storyDataUrl}
+>
+  Compartir en Instagram 📸
+</button>
 
-              <button
-                onClick={handleShare}
-                className="px-6 py-3 rounded-2xl font-semibold bg-white text-black shadow-lg hover:bg-gray-200 transition w-full"
-                disabled={!storyDataUrl}
-              >
-                Compartir en Instagram 📸
-              </button>
+<button
+  onClick={() => setShowPopup(false)}
+  className="text-white/60 hover:text-white mt-1 text-sm"
+>
+  Cerrar
+</button>
 
-              <button
-                onClick={() => setShowPopup(false)}
-                className="text-white/60 hover:text-white mt-1 text-sm"
-              >
-                Cerrar
-              </button>
             </motion.div>
           </motion.div>
         )}

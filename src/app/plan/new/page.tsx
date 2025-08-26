@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
@@ -69,6 +68,7 @@ export default function NewPlanPage() {
     setTitle(value);
   };
 
+  /** CREAR PLAN */
   const createPlan = async () => {
     if (!title || !time || !date) return alert("Añade título, fecha y hora");
     if (creating) return;
@@ -76,15 +76,13 @@ export default function NewPlanPage() {
     const [year, month, day] = date.split("-").map(Number);
     const [hours, minutes] = time.split(":").map(Number);
     const dt = new Date(year, month - 1, day, hours, minutes);
-
     const now = new Date();
     if (dt < now) {
-      alert("No se puede crear un evento con fecha u hora anterior a la actual.");
+      alert("No se puede crear un evento con fecha u hora pasada");
       return;
     }
 
     setCreating(true);
-
     const chatExpiresAt = new Date(dt.getTime() + 12 * 60 * 60 * 1000).toISOString();
 
     try {
@@ -98,8 +96,8 @@ export default function NewPlanPage() {
             place: place || undefined,
             lat,
             lng,
-            chat_expires_at: chatExpiresAt || undefined
-          }
+            chat_expires_at: chatExpiresAt || undefined,
+          },
         ])
         .select();
 
@@ -110,15 +108,11 @@ export default function NewPlanPage() {
       }
 
       const planId = data[0].id;
-
       const { error: chatError } = await supabase
         .from("chats")
         .insert([{ plan_id: planId, expires_at: chatExpiresAt }]);
 
       if (chatError) console.error(chatError);
-
-      const homeState = sessionStorage.getItem("homeState");
-      if (homeState) sessionStorage.setItem("homeState", homeState);
 
       sessionStorage.setItem("justCreatedPlan", "true");
       window.location.href = `/plan/${planId}`;
@@ -127,92 +121,77 @@ export default function NewPlanPage() {
     }
   };
 
+  /** CANCELAR */
   const handleCancel = () => {
     if (canceling) return;
     setCanceling(true);
-
-    const homeState = sessionStorage.getItem("homeState");
-    if (homeState) sessionStorage.setItem("homeState", homeState);
-
     setOpen(false);
     setTimeout(() => window.history.back(), 300);
   };
 
   const inputClasses =
-  "w-full p-3 rounded-2xl bg-[#111111] border border-white/30 text-white placeholder-white/40 text-[16px] focus:outline-none focus:ring-[0.5px] focus:ring-white focus:border-white transition";
-  
+    "w-full px-4 py-3 rounded-2xl bg-black/80 border border-white/20 text-white placeholder-white/40 text-[15px] focus:outline-none focus:ring-1 focus:ring-white focus:border-white transition duration-200";
+
   const today = new Date().toISOString().split("T")[0];
   const nowTime = new Date().toTimeString().slice(0, 5);
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end justify-center p-4 pb-[calc(80px+env(safe-area-inset-bottom))] z-[9999]">
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-xl flex items-end justify-center p-4 pb-[calc(80px+env(safe-area-inset-bottom))] z-[9999]">
       <AnimatePresence>
         {open && (
           <motion.div
             initial={{ y: "100%", opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: "100%", opacity: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            transition={{ type: "spring", stiffness: 280, damping: 30 }}
             drag="y"
             dragConstraints={{ top: 0, bottom: 0 }}
             onDragEnd={(event, info) => {
               if (info.offset.y > 120) handleCancel();
             }}
-            className="w-full max-w-md bg-black text-white border border-white/20 shadow-2xl rounded-3xl overflow-hidden"
+            className="w-full max-w-md bg-gradient-to-b from-black/90 to-black/95 text-white border border-white/10 shadow-2xl rounded-3xl overflow-hidden backdrop-blur-md"
           >
-            {/* Wrapper interno */}
             <div className="p-6 flex flex-col gap-6 max-h-[calc(90vh-80px)] overflow-y-auto">
-              <div className="w-12 h-1.5 bg-white rounded-full mx-auto mb-2" />
-
-              <h1 className="text-3xl font-bold text-center text-white">Crear Plan</h1>
+              <div className="w-12 h-1.5 bg-white/40 rounded-full mx-auto mb-2" />
+              <h1 className="text-2xl font-extrabold text-center">Crear Plan</h1>
 
               {/* Emoji + título */}
-              <div className="flex gap-3 items-center relative">
-                <div id="emoji-selector" className="relative">
-                  {/* Botón emoji principal */}
-                  <button
-  type="button"
-  onClick={() => setEmojiOpen(!emojiOpen)}
-  className="flex items-center justify-center w-12 h-12 text-2xl rounded-full 
-             bg-black text-white border border-white/40 
-             focus:outline-none focus:ring-1 focus:ring-white 
-             hover:scale-105 hover:shadow-[0_0_6px_rgba(255,255,255,0.6)] transition"
->
-  {emoji}
-</button>
+<div className="relative flex gap-3 items-center">
+  {/* Botón trigger */}
+  <button
+    type="button"
+    onClick={() => setEmojiOpen(!emojiOpen)}
+    className="flex items-center justify-center w-12 h-12 text-2xl rounded-full bg-black text-white border border-white/30 hover:scale-105 hover:shadow-[0_0_10px_rgba(255,255,255,0.6)] transition"
+  >
+    {emoji}
+  </button>
 
-{/* Selector de emojis */}
-{emojiOpen && (
-  <div className="absolute top-14 left-0 flex flex-nowrap gap-2 p-2 bg-black/90 backdrop-blur-md rounded-xl shadow-lg min-w-[300px] sm:min-w-[360px] max-w-full overflow-x-auto z-50">
-    {EMOJIS.map((em) => (
-      <button
-        key={em}
-        type="button"
-        onClick={() => {
-          setEmoji(em);       // Cambia el emoji principal
-          setEmojiOpen(false); // Cierra el dropdown
-        }}
-        className="flex items-center justify-center w-12 h-12 text-2xl rounded-full 
-                   bg-black text-white border border-white/30 
-                   focus:outline-none focus:ring-[0.5px] focus:ring-white 
-                   hover:scale-105 hover:shadow-[0_0_4px_rgba(255,255,255,0.5)] transition"
-      >
-        {em}
-      </button>
-    ))}
-  </div>
-)}
+  {/* Input título */}
+  <input
+    className={inputClasses}
+    placeholder="Título (Copas en Malasaña)"
+    value={title}
+    onChange={handleTitleChange}
+  />
 
-
-                </div>
-
-                <input
-                  className={inputClasses}
-                  placeholder="Título (Copas en Malasaña)"
-                  value={title}
-                  onChange={handleTitleChange}
-                />
-              </div>
+  {/* Dropdown: ocupa toda la línea */}
+  {emojiOpen && (
+    <div className="absolute left-0 right-0 top-full mt-2 bg-black/90 backdrop-blur-md rounded-xl border border-white/15 shadow-2xl z-50">
+      <div className="flex flex-nowrap gap-2 overflow-x-auto p-2 scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent touch-pan-x overscroll-contain">
+        {EMOJIS.map((em) => (
+          <button
+            key={em}
+            type="button"
+            onClick={() => { setEmoji(em); setEmojiOpen(false); }}
+            className="flex items-center justify-center w-12 aspect-square text-2xl rounded-full bg-black text-white border border-white/20 hover:scale-105 hover:shadow-[0_0_6px_rgba(255,255,255,0.4)] transition shrink-0"
+          >
+            {em}
+          </button>
+        ))}
+      </div>
+    </div>
+  )}
+</div>
 
               {/* Fecha + hora */}
               <div className="flex gap-3">
@@ -227,8 +206,8 @@ export default function NewPlanPage() {
                   type="time"
                   className={inputClasses}
                   value={time}
-                  onChange={(e) => setTime(e.target.value)}
                   min={date === today ? nowTime : undefined}
+                  onChange={(e) => setTime(e.target.value)}
                 />
               </div>
 
@@ -237,7 +216,7 @@ export default function NewPlanPage() {
                 {lat && lng ? (
                   <>
                     <p className="text-left text-gray-300 text-sm font-medium">{place}</p>
-                    <div className="rounded-xl overflow-hidden h-36 border border-gray-700 shadow-sm">
+                    <div className="rounded-2xl overflow-hidden h-36 border border-white/10 shadow-md">
                       <Map
                         lat={lat}
                         lng={lng}
@@ -275,7 +254,7 @@ export default function NewPlanPage() {
                 <button
                   onClick={handleCancel}
                   disabled={canceling}
-                  className="py-3 px-4 rounded-2xl font-semibold text-white bg-transparent transition shadow-md"
+                  className="py-3 px-4 rounded-2xl font-semibold text-white border border-white/20 bg-transparent hover:bg-white/10 transition shadow-sm"
                 >
                   Cancelar
                 </button>
