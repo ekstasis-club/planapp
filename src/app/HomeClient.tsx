@@ -139,7 +139,8 @@ useEffect(() => {
         date: d.toISOString().split("T")[0],
         time: d.toTimeString().slice(0, 5),
         distance: undefined,
-        attendees: p.attendees?.length ?? 0,
+        // ✅ Obtener el número de asistentes correctamente
+        attendees: p.attendees?.[0]?.count ?? 0,
       };
     });
 
@@ -212,7 +213,7 @@ useEffect(() => {
 
   return (
     <div className="min-h-screen bg-black pb-24">
-      <main className="p-4 space-y-4 pt-12">
+      <main className="p-4 space-y-4">
         {/* Filtros Emoji + Fecha */}
         <div className="flex gap-2 py-2 px-2 items-center relative z-50 bg-black/50 backdrop-blur-md rounded-xl">
           <div id="emoji-filter" className="relative">

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
-import { readJSON, writeJSON } from "@/lib/storage";
 import { supabase } from "@/lib/supabaseClient";
 import type { Database } from "@/lib/database.types";
 import { motion, AnimatePresence } from "framer-motion";
@@ -26,43 +25,59 @@ export default function PlanPage() {
   const [attendees, setAttendees] = useState<string[]>([]);
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
-  //const [place, setPlace] = useState<string>("");
   const [showPopup, setShowPopup] = useState(false);
-
-  // Imagen para compartir (full) y preview pequeña
   const [storyDataUrl, setStoryDataUrl] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-
+  const [user, setUser] = useState<any | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const keyAtt = `attendees_${id}`;
 
+  // Traer plan y asistentes
   useEffect(() => {
-    const fetchPlan = async () => {
+    const fetchPlanAndAttendees = async () => {
       if (!id) return;
-      const { data, error } = await supabase
+
+      const { data: planData, error: planError } = await supabase
         .from("plans")
         .select("*")
         .eq("id", id)
         .single();
 
-      if (error) {
-        console.error(error);
+      if (planError) {
+        console.error(planError);
         setPlan(null);
         return;
       }
 
-      if (data) {
-        setPlan(data);
-        setLat(data.lat);
-        setLng(data.lng);
-        //setPlace(data.place || "");
+      if (planData) {
+        setPlan(planData);
+        setLat(planData.lat);
+        setLng(planData.lng);
       }
+
+      const { data: dbAttendees, error: attError } = await supabase
+        .from("attendees")
+        .select("handle")
+        .eq("plan_id", id)
+        .order("joined_at", { ascending: false });
+
+      if (attError) {
+        console.error(attError);
+        setAttendees([]);
+        return;
+      }
+
+      setAttendees(dbAttendees.map((a) => a.handle));
     };
 
-    fetchPlan();
-    setAttendees(readJSON<string[]>(keyAtt, []));
-  }, [id, keyAtt]);
+    fetchPlanAndAttendees();
+  }, [id]);
 
+  // Traer usuario logeado
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setUser(data.user));
+  }, []);
+
+  // Mostrar popup si se acaba de crear plan
   useEffect(() => {
     if (sessionStorage.getItem("justCreatedPlan") === "true") {
       setShowPopup(true);
@@ -76,13 +91,12 @@ export default function PlanPage() {
     return d.toLocaleString([], { dateStyle: "full", timeStyle: "short" });
   }, [plan]);
 
-  // Generación de la imagen para compartir
+  // Generar imagen para compartir
   useEffect(() => {
     if (!showPopup || !plan) return;
 
     const W = 1080;
     const H = 1920;
-
     const canvas = canvasRef.current ?? document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
@@ -168,28 +182,65 @@ export default function PlanPage() {
       a.download = "plan.png";
       a.click();
 
-      if (isMobile) {
-        alert(
-          "Imagen descargada. Abre Instagram y súbela a tu historia desde la galería."
-        );
-      } else {
-        alert("Imagen descargada. Súbela manualmente a tu historia de Instagram.");
-      }
+      alert(
+        isMobile
+          ? "Imagen descargada. Abre Instagram y súbela a tu historia desde la galería."
+          : "Imagen descargada. Súbela manualmente a tu historia de Instagram."
+      );
     } catch (e) {
       console.error("Error al compartir:", e);
       alert("No se pudo compartir. Descarga la imagen y súbela manualmente.");
     }
   };
 
-  const join = () => {
-    const handle =
-      prompt("Tu @instagram (o deja vacío para entrar como anónimo):")?.trim() ||
-      "anónimo";
-    const current = readJSON<string[]>(keyAtt, []);
-    const next = [handle, ...current];
-    writeJSON(keyAtt, next);
-    setAttendees(next);
-  };
+  const join = async () => {
+    if (!user) {
+      alert("❌ Debes iniciar sesión para apuntarte");
+      window.location.href = "/auth";
+      return;
+    }
+  
+    try {
+      // Verificar si ya está apuntado
+      const { data: existing, error: checkError } = await supabase
+        .from("attendees")
+        .select("handle")
+        .eq("plan_id", id)
+        .eq("user_id", user.id)
+        .limit(1);
+  
+      if (checkError) throw checkError;
+  
+      if (existing && existing.length > 0) {
+        alert("⚠️ Ya estás apuntado a este plan");
+        return;
+      }
+  
+      // Insertar asistencia
+      const handle = user.user_metadata?.username || "Usuario"; // o el nombre que tengas en el perfil
+      const { error: insertError, data: newAttendee } = await supabase
+        .from("attendees")
+        .insert([
+          {
+            plan_id: id,
+            user_id: user.id,
+            handle,
+            joined_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single();
+  
+      if (insertError) throw insertError;
+  
+      // Actualizar UI
+      setAttendees((prev) => [...prev, handle]);
+      alert("✅ Te has apuntado al plan!");
+    } catch (err) {
+      console.error("Error verificando/registrando asistencia:", err);
+      alert("No se pudo registrar tu asistencia. Intenta de nuevo.");
+    }
+  };  
 
   if (!plan)
     return (
@@ -201,7 +252,6 @@ export default function PlanPage() {
   return (
     <>
       <div className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-black flex flex-col items-center gap-6 p-6 pb-28 pt-20">
-        {/* Card principal */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -209,15 +259,12 @@ export default function PlanPage() {
           className="w-full max-w-md bg-white/10 backdrop-blur-xl rounded-2xl shadow-lg border border-white/15 p-6 flex flex-col items-center gap-4"
         >
           <div className="text-6xl">{plan.emoji ?? "✨"}</div>
-          <h1 className="text-3xl font-bold text-white text-center leading-snug">
-            {plan.title ?? ""}
-          </h1>
+          <h1 className="text-3xl font-bold text-white text-center leading-snug">{plan.title ?? ""}</h1>
           <p className="text-white/70 text-sm text-center font-medium">
             {timeText} {plan.place ? `· ${plan.place}` : ""}
           </p>
         </motion.div>
 
-        {/* Mapa */}
         {lat && lng && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -226,40 +273,28 @@ export default function PlanPage() {
             className="w-full max-w-md rounded-2xl overflow-hidden shadow-lg border border-white/15"
           >
             <div className="h-[220px] w-full">
-              <Map
-                lat={lat}
-                lng={lng}
-                
-                setLat={() => {}}
-                setLng={() => {}}
-                
-                draggable={false}
-              />
+              <Map lat={lat} lng={lng} setLat={() => {}} setLng={() => {}} draggable={false} />
             </div>
           </motion.div>
         )}
 
-        {/* Botón unirse */}
         <div className="w-full max-w-md">
           <button
             onClick={join}
-            className="w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 shadow-lg hover:scale-[1.02] active:scale-95 transition"
+            disabled={!user}
+            className={`w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 shadow-lg hover:scale-[1.02] active:scale-95 transition ${
+              !user ? "opacity-50 cursor-not-allowed" : ""
+            }`}
           >
             Apuntarme 🚀
           </button>
         </div>
 
-        {/* Lista asistentes */}
         <section className="w-full max-w-md">
-          <h2 className="font-semibold mb-3 text-white text-lg">
-            Asistentes ({attendees.length})
-          </h2>
+          <h2 className="font-semibold mb-3 text-white text-lg">Asistentes ({attendees.length})</h2>
           <div className="flex flex-wrap gap-2">
             {attendees.map((h, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-4 py-2 shadow-sm"
-              >
+              <div key={i} className="flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-4 py-2 shadow-sm">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 flex items-center justify-center text-sm font-bold text-white">
                   {h[0].toUpperCase()}
                 </div>
@@ -270,7 +305,6 @@ export default function PlanPage() {
         </section>
       </div>
 
-      {/* Popup de compartir */}
       <AnimatePresence>
         {showPopup && (
           <motion.div
@@ -287,55 +321,26 @@ export default function PlanPage() {
               className="bg-black/80 rounded-2xl border border-white/10 p-6 max-w-sm w-full shadow-2xl flex flex-col items-center gap-4 text-center"
             >
               <canvas ref={canvasRef} className="hidden" />
-
               <div className="flex items-center gap-2 mt-1">
                 <span className="text-3xl">{plan.emoji ?? "✨"}</span>
                 <h2 className="text-xl font-bold text-white">{plan.title ?? ""}</h2>
               </div>
-              
-{/* Texto con link en vez de fecha/hora */}
-<a
-  href={typeof window !== "undefined" ? window.location.href : ""}
-  target="_blank"
-  rel="noopener noreferrer"
-  className="text-white/70 text-sm break-all underline hover:text-white"
->
-  {typeof window !== "undefined" ? window.location.href : ""}
-</a>
-
-{preview && (
-  <Image
-    src={preview}
-    alt="Previsualización historia"
-    width={150}
-    height={Math.round((1920 / 1080) * 150)}
-    className="rounded-lg shadow-md border border-white/20"
-  />
-)}
-
-{/* Botón copiar enlace modificado */}
-<button
-  onClick={handleCopyLink}
-  className="px-6 py-3 rounded-xl font-semibold bg-white/90 text-black shadow hover:bg-white transition mx-auto"
->
-  Copiar enlace 🔗
-</button>
-
-<button
-  onClick={handleShare}
-  className="w-full px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 text-white shadow-lg hover:scale-[1.02] active:scale-95 transition"
-  disabled={!storyDataUrl}
->
-  Compartir en Instagram 📸
-</button>
-
-<button
-  onClick={() => setShowPopup(false)}
-  className="text-white/60 hover:text-white mt-1 text-sm"
->
-  Cerrar
-</button>
-
+              <a
+                href={typeof window !== "undefined" ? window.location.href : ""}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/70 text-sm break-all underline hover:text-white"
+              >
+                {typeof window !== "undefined" ? window.location.href : ""}
+              </a>
+              {preview && <Image src={preview} alt="Previsualización historia" width={150} height={Math.round((1920 / 1080) * 150)} className="rounded-lg shadow-md border border-white/20" />}
+              <button onClick={handleCopyLink} className="px-6 py-3 rounded-xl font-semibold bg-white/90 text-black shadow hover:bg-white transition mx-auto">
+                Copiar enlace 🔗
+              </button>
+              <button onClick={handleShare} className="w-full px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 text-white shadow-lg hover:scale-[1.02] active:scale-95 transition" disabled={!storyDataUrl}>
+                Compartir en Instagram 📸
+              </button>
+              <button onClick={() => setShowPopup(false)} className="text-white/60 hover:text-white mt-1 text-sm">Cerrar</button>
             </motion.div>
           </motion.div>
         )}
