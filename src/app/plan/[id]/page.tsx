@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { Database } from "@/lib/database.types";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import type { User } from "@supabase/supabase-js";
 
 const Map = dynamic(() => import("../new/Map"), { ssr: false });
 
@@ -28,7 +29,7 @@ export default function PlanPage() {
   const [showPopup, setShowPopup] = useState(false);
   const [storyDataUrl, setStoryDataUrl] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [user, setUser] = useState<any | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Traer plan y asistentes
@@ -75,7 +76,7 @@ export default function PlanPage() {
   // Traer usuario logeado
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
-  }, []);
+  }, []);  
 
   // Mostrar popup si se acaba de crear plan
   useEffect(() => {
