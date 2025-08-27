@@ -21,7 +21,7 @@ export default function MapComponent({
 }: MapProps) {
   const mapRef = useRef<L.Map | null>(null);
 
-  // Marcador emoji alfiler 📍
+  // Marcador emoji alfiler
   const markerIcon = L.divIcon({
     html: "📍",
     className: "text-2xl",

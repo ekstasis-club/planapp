@@ -34,49 +34,31 @@ export default function PlanPage() {
 
   // Traer plan y asistentes
   useEffect(() => {
-    const fetchPlanAndAttendees = async () => {
-      if (!id) return;
-
-      const { data: planData, error: planError } = await supabase
+    if (!id) return;
+    (async () => {
+      const { data: planData } = await supabase
         .from("plans")
         .select("*")
         .eq("id", id)
         .single();
-
-      if (planError) {
-        console.error(planError);
-        setPlan(null);
-        return;
-      }
-
       if (planData) {
         setPlan(planData);
         setLat(planData.lat);
         setLng(planData.lng);
       }
-
-      const { data: dbAttendees, error: attError } = await supabase
+      const { data: dbAttendees } = await supabase
         .from("attendees")
         .select("handle")
         .eq("plan_id", id)
         .order("joined_at", { ascending: false });
-
-      if (attError) {
-        console.error(attError);
-        setAttendees([]);
-        return;
-      }
-
-      setAttendees(dbAttendees.map((a) => a.handle));
-    };
-
-    fetchPlanAndAttendees();
+      setAttendees(dbAttendees?.map(a => a.handle) || []);
+    })();
   }, [id]);
 
   // Traer usuario logeado
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUser(data.user));
-  }, []);  
+  }, []);
 
   // Mostrar popup si se acaba de crear plan
   useEffect(() => {
@@ -95,9 +77,7 @@ export default function PlanPage() {
   // Generar imagen para compartir
   useEffect(() => {
     if (!showPopup || !plan) return;
-
-    const W = 1080;
-    const H = 1920;
+    const W = 1080, H = 1920;
     const canvas = canvasRef.current ?? document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
@@ -110,13 +90,11 @@ export default function PlanPage() {
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
 
-    ctx.font =
-      '120px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif';
+    ctx.font = '120px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",system-ui,sans-serif';
     ctx.fillStyle = "#ffffff";
     ctx.fillText(plan.emoji ?? "✨", W / 2, 280);
 
     ctx.font = "bold 70px Arial";
-    ctx.fillStyle = "#ffffff";
     ctx.fillText(plan.title ?? "", W / 2, 500);
 
     ctx.font = "28px Arial";
@@ -139,173 +117,107 @@ export default function PlanPage() {
   }, [showPopup, plan, timeText]);
 
   const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      alert("✅ Enlace copiado al portapapeles");
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = window.location.href;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-      alert("✅ Enlace copiado al portapapeles");
-    }
+    try { await navigator.clipboard.writeText(window.location.href); alert("✅ Enlace copiado"); }
+    catch { alert("❌ No se pudo copiar"); }
   };
 
   const handleShare = async () => {
     if (!storyDataUrl) return;
+    const res = await fetch(storyDataUrl);
+    const blob = await res.blob();
+    const file = new File([blob], "plan.png", { type: "image/png" });
 
-    try {
-      const res = await fetch(storyDataUrl);
-      const blob = await res.blob();
-      const file = new File([blob], "plan.png", { type: "image/png" });
+    const nav = navigator as unknown as {
+      canShare?: (data: NavigatorShareFile) => boolean;
+      share?: (data: NavigatorShareFile) => Promise<void>;
+    };
 
-      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-      const nav = navigator as unknown as {
-        canShare?: (data: NavigatorShareFile) => boolean;
-        share?: (data: NavigatorShareFile) => Promise<void>;
-      };
-
-      if (isMobile && nav.canShare?.({ files: [file] }) && nav.share) {
-        await nav.share({
-          files: [file],
-          title: plan?.title ?? "Plan",
-          text: "¡Únete a este plan!",
-          url: window.location.href,
-        });
-        return;
-      }
-
+    if (nav.canShare?.({ files: [file] }) && nav.share) {
+      await nav.share({ files: [file], title: plan?.title ?? "Plan", text: "¡Únete a este plan!", url: window.location.href });
+    } else {
       const a = document.createElement("a");
       a.href = storyDataUrl;
       a.download = "plan.png";
       a.click();
-
-      alert(
-        isMobile
-          ? "Imagen descargada. Abre Instagram y súbela a tu historia desde la galería."
-          : "Imagen descargada. Súbela manualmente a tu historia de Instagram."
-      );
-    } catch (e) {
-      console.error("Error al compartir:", e);
-      alert("No se pudo compartir. Descarga la imagen y súbela manualmente.");
+      alert("Imagen descargada para compartir manualmente");
     }
   };
 
   const join = async () => {
-    if (!user) {
-      alert("❌ Debes iniciar sesión para apuntarte");
-      window.location.href = "/auth";
-      return;
-    }
-  
+    if (!user) { alert("❌ Debes iniciar sesión"); window.location.href = "/auth"; return; }
     try {
-      // Verificar si ya está apuntado
-      const { data: existing, error: checkError } = await supabase
-        .from("attendees")
-        .select("handle")
-        .eq("plan_id", id)
-        .eq("user_id", user.id)
-        .limit(1);
-  
-      if (checkError) throw checkError;
-  
-      if (existing && existing.length > 0) {
-        alert("⚠️ Ya estás apuntado a este plan");
-        return;
-      }
-  
-      // Insertar asistencia
-      const handle = user.user_metadata?.username || "Usuario"; // o el nombre que tengas en el perfil
-      const { error: insertError, data: newAttendee } = await supabase
-        .from("attendees")
-        .insert([
-          {
-            plan_id: id,
-            user_id: user.id,
-            handle,
-            joined_at: new Date().toISOString(),
-          },
-        ])
-        .select()
-        .single();
-  
-      if (insertError) throw insertError;
-  
-      // Actualizar UI
-      setAttendees((prev) => [...prev, handle]);
-      alert("✅ Te has apuntado al plan!");
-    } catch (err) {
-      console.error("Error verificando/registrando asistencia:", err);
-      alert("No se pudo registrar tu asistencia. Intenta de nuevo.");
-    }
-  };  
+      const { data: existing } = await supabase.from("attendees").select("handle").eq("plan_id", id).eq("user_id", user.id).limit(1);
+      if (existing?.length) return alert("⚠️ Ya estás apuntado");
 
-  if (!plan)
-    return (
-      <div className="min-h-screen flex items-center justify-center text-white text-center p-4">
-        Plan no encontrado
-      </div>
-    );
+      const handle = user.user_metadata?.full_name || user.email?.split("@")[0] || "Usuario";
+      const { error: insertError } = await supabase.from("attendees").insert([{ plan_id: id, user_id: user.id, handle, joined_at: new Date().toISOString() }]);
+      if (insertError) throw insertError;
+      setAttendees(prev => [...prev, handle]);
+      alert("✅ Te has apuntado al plan!");
+    } catch { alert("❌ Error al apuntarse"); }
+  };
+
+  if (!plan) return <div className="min-h-screen flex items-center justify-center text-white text-center p-4">Plan no encontrado</div>;
 
   return (
-    <>
-      <div className="min-h-screen bg-gradient-to-b from-black via-zinc-900 to-black flex flex-col items-center gap-6 p-6 pb-28 pt-20">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-xl flex flex-col items-center overflow-y-auto p-4 pt-20 pb-[calc(80px+env(safe-area-inset-bottom))]">
+      {/* Tarjeta principal */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="w-full max-w-md bg-black/90 rounded-3xl border border-white/10 shadow-2xl p-6 flex flex-col items-center gap-4"
+      >
+        <div className="text-6xl">{plan.emoji ?? "✨"}</div>
+        <h1 className="text-3xl font-extrabold text-white text-center leading-snug">{plan.title}</h1>
+        <p className="text-white/70 text-sm text-center font-medium">{timeText} {plan.place ? `· ${plan.place}` : ""}</p>
+      </motion.div>
+
+      {/* Mapa */}
+      {lat && lng && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="w-full max-w-md bg-white/10 backdrop-blur-xl rounded-2xl shadow-lg border border-white/15 p-6 flex flex-col items-center gap-4"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="w-full max-w-md rounded-2xl overflow-hidden shadow-lg border border-white/10 mt-4"
         >
-          <div className="text-6xl">{plan.emoji ?? "✨"}</div>
-          <h1 className="text-3xl font-bold text-white text-center leading-snug">{plan.title ?? ""}</h1>
-          <p className="text-white/70 text-sm text-center font-medium">
-            {timeText} {plan.place ? `· ${plan.place}` : ""}
-          </p>
-        </motion.div>
-
-        {lat && lng && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.3 }}
-            className="w-full max-w-md rounded-2xl overflow-hidden shadow-lg border border-white/15"
-          >
-            <div className="h-[220px] w-full">
-              <Map lat={lat} lng={lng} setLat={() => {}} setLng={() => {}} draggable={false} />
-            </div>
-          </motion.div>
-        )}
-
-        <div className="w-full max-w-md">
-          <button
-            onClick={join}
-            disabled={!user}
-            className={`w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 shadow-lg hover:scale-[1.02] active:scale-95 transition ${
-              !user ? "opacity-50 cursor-not-allowed" : ""
-            }`}
-          >
-            Apuntarme 🚀
-          </button>
-        </div>
-
-        <section className="w-full max-w-md">
-          <h2 className="font-semibold mb-3 text-white text-lg">Asistentes ({attendees.length})</h2>
-          <div className="flex flex-wrap gap-2">
-            {attendees.map((h, i) => (
-              <div key={i} className="flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-4 py-2 shadow-sm">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 flex items-center justify-center text-sm font-bold text-white">
-                  {h[0].toUpperCase()}
-                </div>
-                <span className="text-sm text-white">{h}</span>
-              </div>
-            ))}
+          <div className="h-56 w-full">
+            <Map lat={lat} lng={lng} setLat={() => {}} setLng={() => {}} draggable={false} />
           </div>
-        </section>
+        </motion.div>
+      )}
+
+      {/* Botón Apuntarme */}
+      <div className="w-full max-w-md mt-4">
+        <button
+          onClick={join}
+          disabled={!user}
+          className={`w-full py-4 rounded-2xl font-bold text-lg text-white bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 shadow-lg hover:scale-[1.02] active:scale-95 transition ${!user ? "opacity-50 cursor-not-allowed" : ""}`}
+        >
+          Apuntarme 🚀
+        </button>
       </div>
 
+      {/* Lista de asistentes */}
+      <section className="w-full max-w-md mt-6">
+        <h2 className="font-semibold mb-3 text-white text-lg">Asistentes ({attendees.length})</h2>
+        <div className="flex flex-wrap gap-2">
+          {attendees.map((h, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="flex items-center gap-2 bg-white/10 border border-white/15 rounded-full px-4 py-2 shadow-sm"
+            >
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 flex items-center justify-center text-sm font-bold text-white">{h[0].toUpperCase()}</div>
+              <span className="text-sm text-white">{h}</span>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* Popup compartir */}
       <AnimatePresence>
         {showPopup && (
           <motion.div
@@ -319,7 +231,7 @@ export default function PlanPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.8, opacity: 0 }}
               transition={{ type: "spring", stiffness: 260, damping: 20 }}
-              className="bg-black/80 rounded-2xl border border-white/10 p-6 max-w-sm w-full shadow-2xl flex flex-col items-center gap-4 text-center"
+              className="bg-black/80 rounded-3xl border border-white/10 p-6 max-w-sm w-full shadow-2xl flex flex-col items-center gap-4 text-center"
             >
               <canvas ref={canvasRef} className="hidden" />
               <div className="flex items-center gap-2 mt-1">
@@ -334,18 +246,14 @@ export default function PlanPage() {
               >
                 {typeof window !== "undefined" ? window.location.href : ""}
               </a>
-              {preview && <Image src={preview} alt="Previsualización historia" width={150} height={Math.round((1920 / 1080) * 150)} className="rounded-lg shadow-md border border-white/20" />}
-              <button onClick={handleCopyLink} className="px-6 py-3 rounded-xl font-semibold bg-white/90 text-black shadow hover:bg-white transition mx-auto">
-                Copiar enlace 🔗
-              </button>
-              <button onClick={handleShare} className="w-full px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 text-white shadow-lg hover:scale-[1.02] active:scale-95 transition" disabled={!storyDataUrl}>
-                Compartir en Instagram 📸
-              </button>
+              {preview && <Image src={preview} alt="Previsualización historia" width={150} height={Math.round((1920 / 1080) * 150)} className="rounded-xl shadow-md border border-white/20" />}
+              <button onClick={handleCopyLink} className="px-6 py-3 rounded-2xl font-semibold bg-white/90 text-black shadow hover:bg-white transition mx-auto">Copiar enlace 🔗</button>
+              <button onClick={handleShare} className="w-full px-6 py-3 rounded-2xl font-semibold bg-gradient-to-r from-fuchsia-500 via-pink-500 to-amber-400 text-white shadow-lg hover:scale-[1.02] active:scale-95 transition" disabled={!storyDataUrl}>Compartir en Instagram 📸</button>
               <button onClick={() => setShowPopup(false)} className="text-white/60 hover:text-white mt-1 text-sm">Cerrar</button>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </div>
   );
 }

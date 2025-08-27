@@ -11,7 +11,7 @@ export default function BottomNav() {
   const items = [
     { href: "/", icon: <Home /> },
     { href: "/plan/new", icon: <Plus /> },
-    { href: "/mensajes", icon: <MessageSquare /> },
+    { href: "/profile", icon: <MessageSquare /> },
   ];
 
   return (

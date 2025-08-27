@@ -4,17 +4,14 @@ import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabaseClient";
 import { motion, AnimatePresence } from "framer-motion";
 import { PanInfo } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { User } from "@supabase/supabase-js";
+import { useUserSession } from "@/hooks/useUserSession";
 
 const Map = dynamic(() => import("./Map"), { ssr: false });
 
 const EMOJIS = ["🎉","🍻","🎬","🎮","🏖️","🏃‍♂️","🍕","☕","🎵","📸","🛶","🏔️"];
 
 export default function NewPlanPage() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
-  const router = useRouter();
+  const { user, loadingUser } = useUserSession();
 
   const [title, setTitle] = useState("");
   const [emoji, setEmoji] = useState("🎉");
@@ -29,7 +26,7 @@ export default function NewPlanPage() {
   const [canceling, setCanceling] = useState(false);
   const [open, setOpen] = useState(true);
 
-  // ⏰ Prefill fecha/hora
+  // Prefill fecha/hora
   useEffect(() => {
     const now = new Date();
     setDate(now.toISOString().split("T")[0]);
@@ -40,7 +37,7 @@ export default function NewPlanPage() {
     setTime(`${hh}:${mm}`);
   }, []);
 
-  // 📍 Obtener ubicación
+  // Obtener ubicación
   useEffect(() => {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -67,27 +64,15 @@ export default function NewPlanPage() {
     });
   }, []);
 
-  // 👤 Verificar sesión y redirigir
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data.user);
-      setLoadingUser(false);
-      if (!data.user) {
-        router.replace("/auth"); // 🚀 redirige si no hay sesión
-      }
-    });
+  // USER
+  if (loadingUser) {
+    return (
+      <div className="flex items-center justify-center bg-black p-6 pt-20">
+        <div className="animate-spin rounded-full h-8 w-8 border-4 border-white border-t-transparent"></div>
+      </div>
+    );
+  }
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      if (!session?.user) {
-        router.replace("/auth");
-      }
-    });
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, [router]);
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
